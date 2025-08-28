@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.promtuz.chat.compositions.LocalHazeState
+import com.promtuz.chat.navigation.AppNavigation
 import com.promtuz.chat.ui.components.BlurredBars
 import com.promtuz.chat.ui.components.BottomBar
 import com.promtuz.chat.ui.components.HomeListItem
@@ -35,75 +36,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             PromtuzTheme(dynamicColor = true) {
-                val localHazeState = rememberHazeState()
-                val hazeState = rememberHazeState()
-
-                Scaffold(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .hazeSource(localHazeState),
-                    topBar = { TopBar() },
-                    bottomBar = { BottomBar() }
-                ) { innerPadding ->
-                    CompositionLocalProvider(LocalHazeState provides localHazeState) {
-                        Box {
-                            Column(Modifier.hazeSource(hazeState)) {
-                                val listState = rememberLazyListState()
-
-                                val chats = arrayOf(
-                                    "Averal Purwar",
-                                    "Aftab Shaikh",
-                                    "Criminal",
-                                    "Shaurya Ranjan",
-                                    "Kabir",
-                                    "Dynoxy",
-                                    "Ankush",
-                                    "Martin Trevolsky",
-                                    "Lennox",
-                                    "Madhav",
-                                    "Ankush",
-                                    "Martin Trevolsky",
-                                    "Lennox",
-                                    "Kabir",
-                                    "Dynoxy",
-                                    "Ankush",
-                                    "Martin Trevolsky",
-                                    "Lennox",
-                                    "Madhav",
-                                    "Ankush",
-                                    "Martin Trevolsky",
-                                    "Lennox",
-                                )
-
-                                LazyColumn(
-                                    state = listState,
-                                    contentPadding = PaddingValues(
-                                        top = innerPadding.calculateTopPadding() + 24.dp,
-                                        bottom = innerPadding.calculateBottomPadding() + 24.dp
-                                    ),
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    items(chats.size) { index ->
-                                        val peer = chats[index];
-
-                                        HomeListItem(peer)
-                                    }
-                                }
-                            }
-
-                            BlurredBars(
-                                hazeState,
-                                innerPadding.calculateTopPadding(),
-                                Alignment.TopCenter
-                            )
-                            BlurredBars(
-                                hazeState,
-                                innerPadding.calculateBottomPadding(),
-                                Alignment.BottomCenter
-                            )
-                        }
-                    }
-                }
+                AppNavigation()
             }
         }
     }
