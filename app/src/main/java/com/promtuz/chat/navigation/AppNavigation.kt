@@ -3,12 +3,17 @@ package com.promtuz.chat.navigation
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
@@ -18,6 +23,9 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.navigation3.ui.rememberSceneSetupNavEntryDecorator
 import com.promtuz.chat.compositions.LocalBackStack
 import com.promtuz.chat.ui.screens.ChatScreen
+import com.promtuz.chat.ui.screens.EncryptionKeyScreen
+import com.promtuz.chat.ui.screens.LoginScreen
+import com.promtuz.chat.ui.theme.PromtuzTheme
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -42,72 +50,95 @@ object AppRoutes {
     @Serializable
     data object LoginScreen : AppNavKey
 
+    @Serializable
+    data object EncryptionKeyScreen : AppNavKey
+
     // === AUTHENTICATION SCREENS END ===
 }
 
 
 @Composable
 fun AppNavigation() {
-    val backStack = rememberNavBackStack(AppRoutes.App)
+    val backStack = rememberNavBackStack(AppRoutes.LoginScreen)
 
     // androidx.
 
     CompositionLocalProvider(LocalBackStack provides backStack) {
-        NavDisplay(
-            backStack,
-            entryDecorators = listOf(
-                rememberSavedStateNavEntryDecorator(),
-                rememberViewModelStoreNavEntryDecorator(),
-                rememberSceneSetupNavEntryDecorator()
-            ),
-            entryProvider = { key ->
-                when (key) {
-                    is AppRoutes.App -> {
-                        NavEntry(key, content = { HomeNavigation() })
-                    }
+        PromtuzTheme {
+            NavDisplay(
+                backStack,
+                Modifier.background(MaterialTheme.colorScheme.background),
+                entryDecorators = listOf(
+                    rememberSavedStateNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                    rememberSceneSetupNavEntryDecorator()
+                ),
+                entryProvider = { key ->
+                    when (key) {
+                        is AppRoutes.App -> {
+                            NavEntry(key, content = { HomeNavigation() })
+                        }
 
-                    is AppRoutes.ProfileScreen -> {
-                        NavEntry(key, content = { Text("Sup Homie") })
-                    }
+                        is AppRoutes.ProfileScreen -> {
+                            NavEntry(key, content = { Text("Sup Homie") })
+                        }
 
-                    is AppRoutes.ChatScreen -> {
-                        NavEntry(key, content = { ChatScreen(key.userId) })
-                    }
+                        is AppRoutes.ChatScreen -> {
+                            NavEntry(key, content = { ChatScreen(key.userId) })
+                        }
 
-                    is AppRoutes.LoginScreen -> {
-                        NavEntry(key, content = { Text("real") })
-                    }
+                        is AppRoutes.LoginScreen -> {
+                            NavEntry(key, content = { LoginScreen() })
+                        }
 
-                    else -> throw RuntimeException("Invalid Screen")
+                        is AppRoutes.EncryptionKeyScreen -> {
+                            NavEntry(key, content = { EncryptionKeyScreen() })
+                        }
+
+                        else -> throw RuntimeException("Invalid Screen")
+                    }
+                },
+                transitionSpec = {
+                    // Forward: new screen starts 60% slid in, completes slide while fading in
+                    // Previous screen stays rock solid and fades out subtly
+                    (slideInHorizontally(
+                        initialOffsetX = { (it * 0.25f).toInt() }, // Start 60% there (40% remaining)
+                        animationSpec = tween(200, easing = FastOutSlowInEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(200, easing = FastOutSlowInEasing)
+                    )) togetherWith fadeOut(
+                        animationSpec = tween(200, easing = FastOutSlowInEasing),
+                        targetAlpha = 0.2f
+                    )
+                },
+                popTransitionSpec = {
+                    // Back: reverse - slide out to 60% position while fading
+                    fadeIn(
+                        animationSpec = tween(250, easing = FastOutSlowInEasing),
+                        initialAlpha = 0.2f
+                    ) togetherWith (slideOutHorizontally(
+                        targetOffsetX = { (it * 0.25f).toInt() },
+                        animationSpec = tween(250, easing = FastOutSlowInEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(250, easing = FastOutSlowInEasing)
+                    ))
+                },
+                predictivePopTransitionSpec = {
+                    // Same as pop but snappier
+                    (slideInHorizontally(
+                        initialOffsetX = { -(it * 0.4f).toInt() },
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    ) + fadeIn(
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing),
+                        initialAlpha = 0.2f
+                    )) togetherWith (slideOutHorizontally(
+                        targetOffsetX = { it },
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    ) + fadeOut(
+                        animationSpec = tween(300, easing = LinearOutSlowInEasing)
+                    ))
                 }
-            },
-            transitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { it },
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                ) togetherWith slideOutHorizontally(
-                    targetOffsetX = { -it / 3 }, // Subtle parallax effect
-                    animationSpec = tween(300, easing = FastOutSlowInEasing)
-                )
-            },
-            popTransitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { -it / 3 }, // Matching parallax
-                    animationSpec = tween(250, easing = LinearOutSlowInEasing)
-                ) togetherWith slideOutHorizontally(
-                    targetOffsetX = { it },
-                    animationSpec = tween(250, easing = LinearOutSlowInEasing)
-                )
-            },
-            predictivePopTransitionSpec = {
-                slideInHorizontally(
-                    initialOffsetX = { -it / 3 },
-                    animationSpec = tween(250, easing = LinearOutSlowInEasing)
-                ) togetherWith slideOutHorizontally(
-                    targetOffsetX = { it },
-                    animationSpec = tween(250, easing = LinearOutSlowInEasing)
-                )
-            }
-        )
+            )
+        }
     }
 }

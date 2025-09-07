@@ -14,25 +14,24 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.promtuz.chat.navigation.ScrollState
+import dev.chrisbanes.haze.ExperimentalHazeApi
+import dev.chrisbanes.haze.HazeInputScale
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
 import dev.chrisbanes.haze.hazeEffect
 
 
-private const val BLUR_RADIUS = 32;
+private const val BLUR_RADIUS = 28;
 
+@OptIn(ExperimentalHazeApi::class)
 @Composable
 fun BoxScope.BlurredBars(
     hazeState: HazeState,
-    scrollState: MutableState<ScrollState>,
+    // scrollState: MutableState<ScrollState>,
     height: Dp,
     alignment: Alignment
 ) {
-    LaunchedEffect(scrollState) {
-        println("Real Shit ${scrollState.value.scroll.coerceAtMost(BLUR_RADIUS)}")
-    }
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -42,13 +41,15 @@ fun BoxScope.BlurredBars(
                 hazeState,
 
                 style = HazeStyle(
-                    blurRadius = 32.dp,
+                    blurRadius = BLUR_RADIUS.dp,
                     tint = HazeTint(
                         MaterialTheme.colorScheme.background,
                         BlendMode.Screen
                     ),
                     noiseFactor = 0.1f,
                 )
-            ),
+            ) {
+                inputScale = HazeInputScale.Fixed(.7f)
+            },
     )
 }

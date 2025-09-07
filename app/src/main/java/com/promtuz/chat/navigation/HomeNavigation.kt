@@ -103,35 +103,35 @@ fun HomeNavigation() {
                     },
                     transitionSpec = {
                         fadeIn(
-                            animationSpec = tween(150, 0, EaseInQuint)
+                            animationSpec = tween(0, 0, EaseInQuint)
                         ) togetherWith fadeOut(
-                            animationSpec = tween(150, 0, EaseOutQuint)
+                            animationSpec = tween(0, 0, EaseOutQuint)
                         )
                     },
                     popTransitionSpec = {
                         fadeIn(
-                            animationSpec = tween(150, 0, EaseInQuint)
+                            animationSpec = tween(0, 0, EaseInQuint)
                         ) togetherWith fadeOut(
-                            animationSpec = tween(150, 0, EaseOutQuint)
+                            animationSpec = tween(0, 0, EaseOutQuint)
                         )
                     },
                     predictivePopTransitionSpec = {
                         fadeIn(
-                            animationSpec = tween(100, 0, EaseInQuint)
+                            animationSpec = tween(0, 0, EaseInQuint)
                         ) togetherWith fadeOut(
-                            animationSpec = tween(100, 0, EaseOutQuint)
+                            animationSpec = tween(0, 0, EaseOutQuint)
                         )
                     }
                 )
                 BlurredBars(
                     hazeState,
-                    scrollState,
+                    // scrollState,
                     innerPadding.calculateTopPadding(),
                     Alignment.TopCenter
                 )
                 BlurredBars(
                     hazeState,
-                    scrollState,
+                    // scrollState,
                     innerPadding.calculateBottomPadding(),
                     Alignment.BottomCenter
                 )

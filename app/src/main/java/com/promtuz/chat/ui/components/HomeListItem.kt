@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.promtuz.chat.compositions.LocalBackStack
 import com.promtuz.chat.navigation.AppRoutes
-import com.promtuz.chat.navigation.navigate
+import com.promtuz.chat.navigation.Navigate
 import com.promtuz.chat.ui.theme.adjustLight
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 
@@ -46,7 +46,7 @@ fun HomeListItem(
                     )
                 ),
                 onClick = {
-                    navigate(backStack, AppRoutes.ChatScreen(peer))
+                    Navigate.chat(backStack, AppRoutes.ChatScreen(peer))
                 },
                 onLongClick = {
 
@@ -68,7 +68,15 @@ fun HomeListItem(
             Avatar(peer)
 
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(peer, fontSize = 16.sp, lineHeight = 18.sp, fontWeight = FontWeight.W500)
+                Text(
+                    peer,
+                    fontSize = 16.sp,
+                    lineHeight = 18.sp,
+                    fontWeight = FontWeight.W500,
+                    color = MaterialTheme.colorScheme.onBackground.copy(
+                        0.95f
+                    )
+                )
                 Text(
                     "Acha",
                     fontSize = 12.sp,

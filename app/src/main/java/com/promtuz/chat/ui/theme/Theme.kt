@@ -38,7 +38,9 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
-// private val radius = CornerRadius();
+
+
+
 
 @Composable
 fun PromtuzTheme(
@@ -60,6 +62,6 @@ fun PromtuzTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

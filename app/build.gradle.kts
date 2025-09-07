@@ -10,6 +10,8 @@ android {
     namespace = "com.promtuz.chat"
     compileSdk = 36
 
+    ndkVersion = "28.2.13676358"
+
     defaultConfig {
         applicationId = "com.promtuz.chat"
         minSdk = 33
@@ -21,6 +23,11 @@ android {
 
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86"))
+        }
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 
