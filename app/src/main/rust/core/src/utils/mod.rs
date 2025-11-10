@@ -1,9 +1,9 @@
-use libcore::{PublicKey, StaticSecret};
 use jni::{
     JNIEnv,
     objects::{JByteArray, JValue},
     sys::jobject,
 };
+use libcore::{PublicKey, StaticSecret, encrypt::Encrypted};
 
 pub fn get_pair_object(env: &mut JNIEnv, first: JValue, second: JValue) -> jobject {
     let pair_class = env
@@ -40,7 +40,6 @@ impl KeyConversion for JByteArray<'_> {
     }
 }
 
-
 pub fn create_encrypted_data(
     env: &mut JNIEnv,
     nonce: Vec<u8>,
@@ -49,17 +48,27 @@ pub fn create_encrypted_data(
     // Convert to byte arrays
     let nonce_array = env.byte_array_from_slice(&nonce)?;
     let cipher_array = env.byte_array_from_slice(&cipher)?;
-    
+
     // Since Bytes is a value class, it's erased to ByteArray at runtime
     // So the constructor signature is still ([B[B)V
     let obj = env.new_object(
         "com/promtuz/rust/EncryptedData",
-        "([B[B)V",  // Still byte arrays!
+        "([B[B)V", // Still byte arrays!
         &[
             JValue::Object(&nonce_array.into()),
             JValue::Object(&cipher_array.into()),
         ],
     )?;
-    
+
     Ok(obj.into_raw())
+}
+
+pub trait ToJObject {
+    fn to_jobject(self, env: &mut JNIEnv<'_>) -> Result<jobject, jni::errors::Error>;
+}
+
+impl ToJObject for Encrypted {
+    fn to_jobject(self, env: &mut JNIEnv<'_>) -> Result<jobject, jni::errors::Error> {
+        create_encrypted_data(env, self.nonce, self.cipher)
+    }
 }

@@ -4,16 +4,16 @@ use jni::{
     objects::{JByteArray, JClass, JObject, JString, JValue},
     sys::{jlong, jobject},
 };
+use macros::jni;
 
 use crate::utils::{KeyConversion, get_pair_object};
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_getEphemeralKeypair<'local, 'jval>(
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn getEphemeralKeypair<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jobject {
     let res = std::panic::catch_unwind(move || {
-        // Pair(SecretKeyPointer, PublicKeyBytes)
         let (esk, epk) = get_ephemeral_keypair();
         log::debug!("Got Epehem KP? {:?}", epk);
         let esk_ptr = Box::new(esk);
@@ -49,8 +49,8 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_getEphemeralKeypair<'local, 'jval
     }
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_deriveSharedKey<'local>(
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn deriveSharedKey<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     raw_key: JByteArray<'local>,
@@ -60,7 +60,7 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_deriveSharedKey<'local>(
     let salt: String = env.get_string(&salt).unwrap().into();
     let info: String = env.get_string(&info).unwrap().into();
 
-    let raw_shared_key_slice = raw_key.to_bytes(&mut env);
+    let raw_shared_key_slice = raw_key.to_bytes(&env);
 
     let shared_key = get_shared_key(&raw_shared_key_slice, &salt, &info);
 
