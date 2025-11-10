@@ -4,14 +4,17 @@ use jni::{
     objects::{JByteArray, JClass},
     sys::jlong,
 };
+use macros::jni;
 
 use crate::utils::KeyConversion;
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_ephemeralDiffieHellman<'local>(
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn ephemeralDiffieHellman<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     // pointer to EphemeralSecret
+    // idk about lifetimes so i have no idea how long will this pointer live
+    // afaik box pointers live throughout entire process lifetime cuz they're stored in the heap
     ephemeral_secret_ptr: jlong,
     public_key_bytes: JByteArray,
 ) -> JByteArray<'local> {
@@ -24,8 +27,8 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_ephemeralDiffieHellman<'local>(
     JByteArray::from(shared_jarray)
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_diffieHellman<'local>(
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn diffieHellman<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     secret_key_bytes: JByteArray,

@@ -23,6 +23,7 @@ use jni::sys::jobject;
 
 use crate::utils::get_pair_object;
 pub mod utils;
+pub mod crypto;
 
 use libcore::get_static_keypair;
 use macros::jni;

@@ -1,15 +1,16 @@
-use libcore::{EncryptedData, decrypt_data, encrypt_data};
 use jni::{
     JNIEnv,
     objects::{JByteArray, JClass, JObject},
     sys::jobject,
 };
+use libcore::encrypt::Encrypted;
+use macros::jni;
 
-use crate::utils::{KeyConversion, create_encrypted_data};
+use crate::utils::{ToJObject, KeyConversion};
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_decryptData<'local>(
-    mut env: JNIEnv<'local>,
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn decryptData<'local>(
+    env: JNIEnv<'local>,
     _class: JClass,
 
     cipher: JByteArray<'local>,
@@ -17,12 +18,14 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_decryptData<'local>(
     key: JByteArray<'local>,
     ad: JByteArray<'local>,
 ) -> JByteArray<'local> {
-    let cipher = env.convert_byte_array(cipher).unwrap();
-    let nonce = env.convert_byte_array(nonce).unwrap();
-    let key = key.to_bytes(&mut env);
+    let encrypted = Encrypted {
+        cipher: env.convert_byte_array(cipher).unwrap(),
+        nonce: env.convert_byte_array(nonce).unwrap(),
+    };
+    let key = key.to_bytes(&env);
     let ad = env.convert_byte_array(ad).unwrap();
 
-    let data = match decrypt_data(EncryptedData { cipher, nonce }, &key, &ad) {
+    let data = match encrypted.decrypt(&key, &ad) {
         Ok(dat) => dat,
         Err(err) => {
             log::error!("DecryptData Fail : {}", err);
@@ -35,8 +38,8 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_decryptData<'local>(
     JByteArray::from(jarray)
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_com_promtuz_rust_Crypto_encryptData<'local>(
+#[jni(base = "com.promtuz.rust", class = "Crypto")]
+pub extern "C" fn encryptData<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
 
@@ -45,11 +48,11 @@ pub extern "C" fn Java_com_promtuz_rust_Crypto_encryptData<'local>(
     ad: JByteArray<'local>,
 ) -> jobject {
     let data = env.convert_byte_array(data).unwrap();
-    let key = key.to_bytes(&mut env);
+    let key = key.to_bytes(&env);
     let ad = env.convert_byte_array(ad).unwrap();
+    let encrypted = Encrypted::encrypt(&data, &key, &ad);
 
-    let data = encrypt_data(&data, &key, &ad);
-
-    create_encrypted_data(&mut env, data.nonce, data.cipher)
+    encrypted
+        .to_jobject(&mut env)
         .unwrap_or_else(|_| JObject::null().as_raw())
 }
