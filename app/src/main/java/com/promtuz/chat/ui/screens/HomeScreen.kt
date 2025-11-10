@@ -173,7 +173,6 @@ fun StatsBox(
     val status by quicClient.status
 
     val keys = mapOf(
-        "IDENTITY SECRET KEY" to keyManager.getSecretKey(),
         "IDENTITY PUBLIC KEY" to keyManager.getPublicKey(),
         "SERVER PUBLIC KEY" to quicClient.handshake?.serverPublicKey?.bytes
     )

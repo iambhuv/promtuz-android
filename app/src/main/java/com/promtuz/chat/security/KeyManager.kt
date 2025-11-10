@@ -5,15 +5,16 @@ import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.core.content.edit
+import com.promtuz.core.Crypto
 import kotlinx.io.IOException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
+import javax.crypto.SecretKey as JSecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlin.io.encoding.Base64
 
-class KeyManager(context: Context) {
+class KeyManager(context: Context, private val crypto: Crypto) {
     companion object {
         private const val WRAPPER_KEY_ALIAS = "encryptor"
         private const val PREFS_NAME = "keys"
@@ -29,21 +30,8 @@ class KeyManager(context: Context) {
 
 
     fun initialize() {
-        // keyStore.set
         if (!keyStore.containsAlias(WRAPPER_KEY_ALIAS)) {
             generateWrapperKey()
-        }
-
-        // UNSAFE_clearKeys()
-    }
-
-    fun UNSAFE_clearKeys() {
-        prefs.edit {
-            remove(WRAPPER_KEY_ALIAS)
-            remove(PREFS_NAME)
-            remove(IDENTITY_SECRET)
-            remove(IDENTITY_SECRET_IV)
-            remove(IDENTITY_PUBLIC)
         }
     }
 
@@ -68,14 +56,14 @@ class KeyManager(context: Context) {
      * returning the cipher and iv in pair
      */
     private fun encryptWithKeystoreKey(data: ByteArray): Pair<ByteArray, ByteArray> {
-        val secretKey = keyStore.getKey(WRAPPER_KEY_ALIAS, null) as SecretKey
+        val secretKey = keyStore.getKey(WRAPPER_KEY_ALIAS, null) as JSecretKey
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, secretKey)
         return Pair(cipher.doFinal(data), cipher.iv)
     }
 
     private fun decryptWithKeystoreKey(encryptedData: ByteArray, iv: ByteArray): ByteArray {
-        val secretKey = keyStore.getKey(WRAPPER_KEY_ALIAS, null) as SecretKey
+        val secretKey = keyStore.getKey(WRAPPER_KEY_ALIAS, null) as JSecretKey
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, secretKey, GCMParameterSpec(128, iv))
         return cipher.doFinal(encryptedData)
@@ -106,25 +94,18 @@ class KeyManager(context: Context) {
                 && null != prefs.getString(IDENTITY_SECRET_IV, null)
     }
 
-    /** UNSAFE: It's returning decrypted bytearray of such sensitive secret key?
-     *
-     * TODO: Create a wrapper class `SecretKey`,
-     *  it'll hold all necessary methods, even involving libcore,
-     *  decrypting the key on-demand and clearing after use
-     *
-     */
-    fun getSecretKey(): ByteArray? {
+    fun getSecretKey(): SecretKey? {
         val encryptedKeyStr = prefs.getString(IDENTITY_SECRET, null) ?: return null
         val ivStr = prefs.getString(IDENTITY_SECRET_IV, null) ?: return null
         val cipher = Base64.decode(encryptedKeyStr)
         val iv = Base64.decode(ivStr)
-        return decryptWithKeystoreKey(cipher, iv)
+        return SecretKey(decryptWithKeystoreKey(cipher, iv), crypto)
     }
-
 
     @Throws(IOException::class)
     fun getPublicKey(): ByteArray {
-        val pubKeyStr = prefs.getString(IDENTITY_PUBLIC, null) ?: throw IOException("Public Key not found in KeyManager")
+        val pubKeyStr = prefs.getString(IDENTITY_PUBLIC, null)
+            ?: throw IOException("Public Key not found in KeyManager")
         return Base64.decode(pubKeyStr)
     }
 }

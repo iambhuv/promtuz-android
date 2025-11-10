@@ -75,12 +75,11 @@ class Handshake(
         val recv = stream?.inputStream ?: throw IOException("No stream")
         while (recv.available() != -1) {
             val packet = recv.readNBytes(
-                ByteBuffer.wrap(recv.readNBytes(4))
-                    .order(ByteOrder.BIG_ENDIAN).int
+                ByteBuffer.wrap(recv.readNBytes(4)).order(ByteOrder.BIG_ENDIAN).int
             )
 
-            when (val data = cborDecode<Server.UnsafeHello>(packet)
-                ?: cborDecode<Server.UnsafeReject>(packet)
+            when (val data =
+                cborDecode<Server.UnsafeHello>(packet) ?: cborDecode<Server.UnsafeReject>(packet)
                 ?: cborDecode<EncryptedData>(packet)) {
                 is Server.UnsafeHello -> handleServerHello(data)
                 is Server.UnsafeReject -> throw ConnectionError.HandshakeFailed("Rejected: $data")
@@ -123,14 +122,17 @@ class Handshake(
     private fun handleServerHello(data: Server.UnsafeHello) {
         this.serverEphemeralPublicKey = data.epk
 
-        val isk = keyManager.getSecretKey() as ByteArray
+        val secretKey = keyManager.getSecretKey() ?: return
+
+        val sharedKey = secretKey.deriveSharedKey(
+            data.epk.bytes, Salts.HANDSHAKE, Info.SERVER_HANDSHAKE_SV_TO_CL
+        )
 
         val proof = crypto.decryptData(
-            data.msg.cipher.bytes, data.msg.nonce.bytes, crypto.deriveSharedKey(
-                crypto.diffieHellman(isk, data.epk.bytes),
-                Salts.HANDSHAKE,
-                Info.SERVER_HANDSHAKE_SV_TO_CL
-            ), (AD.hello as Bytes).bytes
+            cipher = data.msg.cipher.bytes,
+            nonce = data.msg.nonce.bytes,
+            key = sharedKey,
+            ad = (AD.hello as Bytes).bytes
         )
 
         this.sharedSecret = crypto.ephemeralDiffieHellman(this.keyPair.esk, data.epk.bytes)

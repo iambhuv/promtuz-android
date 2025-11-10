@@ -9,9 +9,9 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 val appModule = module {
-    single { KeyManager(androidContext()) }
     single { Core() }
     single { Crypto() }
+    single { KeyManager(androidContext(), get()) }
 
     single { QuicClient(get(), get()) }
 
