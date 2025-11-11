@@ -7,9 +7,5 @@ class Core {
         }
     }
 
-    init {
-        initLogger()
-    }
-
     external fun initLogger()
 }

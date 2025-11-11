@@ -103,7 +103,6 @@ class Handshake(
         this@Handshake.keyPair = EphemeralKeyPair(keyPair.first, Bytes(keyPair.second))
 
         val identityPublicKey = keyManager.getPublicKey()
-            ?: throw IOException("Identity Public Key Unavailable in KeyManager")
 
         val hello = Client.HelloPayload(
             Bytes(identityPublicKey), Bytes(this@Handshake.keyPair.epk.bytes)
@@ -111,6 +110,8 @@ class Handshake(
 
         val payload = AppCbor.instance.encodeToByteArray(hello)
         AD.hello = Bytes(payload)
+
+        println("SENDING_PACKET: $payload")
 
         stream?.outputStream?.write(framePacket(payload))
         stream?.outputStream?.flush()

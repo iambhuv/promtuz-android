@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.domain.model.Chat
 import com.promtuz.chat.navigation.AppNavigator
 import com.promtuz.chat.navigation.Routes
@@ -13,7 +14,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 class AppVM(
-    private val application: Application
+    private val application: Application,
+    private val quicClient: QuicClient
 ) : ViewModel() {
     private val context: Context get() = application.applicationContext
 
@@ -25,5 +27,12 @@ class AppVM(
     fun openChat(identityKey: Chat) {
         activeChatUser = identityKey
         navigator.push(Routes.Chat)
+    }
+
+    init {
+        viewModelScope.launch {
+            val res = quicClient.connect(context)
+            println("QUIC RES : $res")
+        }
     }
 }

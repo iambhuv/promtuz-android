@@ -6,7 +6,7 @@ import org.koin.dsl.module
 
 val vmModule = module {
     viewModel { WelcomeVM(get(), get(), get(), get()) }
-    viewModel { AppVM(get()) }
+    viewModel { AppVM(get(), get()) }
     viewModel { ShareIdentityVM(get(), get(), get()) }
     viewModel { QrScannerVM(get(), get()) }
     viewModel { SavedUsersVM(get(), get()) }

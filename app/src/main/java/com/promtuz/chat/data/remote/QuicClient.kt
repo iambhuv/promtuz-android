@@ -96,7 +96,7 @@ class QuicClient(private val keyManager: KeyManager, private val crypto: Crypto)
                 .customTrustManager(TrustManager.pinned(context))
                 .version(QuicConnection.QuicVersion.V1)
                 .uri(URI("https://${addr.first}:${addr.second}"))
-                .applicationProtocol("ProtoCall")
+                .applicationProtocol("resolver")
                 .maxIdleTimeout(Duration.ofHours(1))
                 .build()
 

@@ -9,7 +9,7 @@ use macros::jni;
 use crate::utils::{KeyConversion, get_pair_object};
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "C" fn getStaticKeypair(
+pub extern "system" fn getStaticKeypair(
     mut env: JNIEnv, 
     _class: JClass
 ) -> jobject {
@@ -30,7 +30,7 @@ pub extern "C" fn getStaticKeypair(
 
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "C" fn getEphemeralKeypair<'local>(
+pub extern "system" fn getEphemeralKeypair<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) -> jobject {
@@ -71,7 +71,7 @@ pub extern "C" fn getEphemeralKeypair<'local>(
 }
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "C" fn deriveSharedKey<'local>(
+pub extern "system" fn deriveSharedKey<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     raw_key: JByteArray<'local>,

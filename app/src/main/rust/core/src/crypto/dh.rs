@@ -8,8 +8,9 @@ use macros::jni;
 
 use crate::utils::KeyConversion;
 
+
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "C" fn ephemeralDiffieHellman<'local>(
+pub extern "system" fn ephemeralDiffieHellman<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     // pointer to EphemeralSecret
@@ -28,7 +29,7 @@ pub extern "C" fn ephemeralDiffieHellman<'local>(
 }
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "C" fn diffieHellman<'local>(
+pub extern "system" fn diffieHellman<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
     secret_key_bytes: JByteArray,

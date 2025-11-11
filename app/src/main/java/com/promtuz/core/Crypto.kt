@@ -18,10 +18,7 @@ data class EncryptedData(
 }
 
 class Crypto : KoinComponent {
-    init {
-        // Forces Dependency on Core
-        inject<Core>()
-    }
+    val core by inject<Core>()
 
     external fun getStaticKeypair(): Pair<ByteArray, ByteArray>
 
@@ -29,6 +26,11 @@ class Crypto : KoinComponent {
      * returns the pointer to `EphemeralSecret Key` and `Ephemeral Public Key Bytes`
      */
     external fun getEphemeralKeypair(): Pair<Long, ByteArray>
+
+    init {
+        core.initLogger()
+        println("STATIC_KEYPAIR: ${getStaticKeypair()}")
+    }
 
 
     external fun ephemeralDiffieHellman(

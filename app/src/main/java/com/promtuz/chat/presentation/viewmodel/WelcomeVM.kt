@@ -15,6 +15,7 @@ import com.promtuz.chat.presentation.state.WelcomeStatus
 import com.promtuz.chat.presentation.state.WelcomeUiState
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.core.Core
+import com.promtuz.core.Crypto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -23,7 +24,7 @@ import org.koin.core.component.inject
 
 class WelcomeVM(
     private val keyManager: KeyManager,
-    private val core: Core,
+    private val crypto: Crypto,
     private val application: Application,
     appDatabase: AppDatabase
 ) : ViewModel(), KoinComponent {
@@ -51,7 +52,7 @@ class WelcomeVM(
         onChange(WelcomeField.Status, WelcomeStatus.Generating)
 
         // Step 1.
-        val (secret, public) = core.getStaticKeypair()
+        val (secret, public) = crypto.getStaticKeypair()
 
         // Step 2.
         keyManager.storeSecretKey(secret) // secret is emptied

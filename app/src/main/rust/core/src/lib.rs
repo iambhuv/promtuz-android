@@ -8,7 +8,7 @@
 //! for eg.
 //! ```rs
 //! #[jni(base = "com.promtuz.core", class = "Crypto")]
-//! pub extern "C" fn getStaticKey(
+//! pub extern "system" fn getStaticKey(
 //!   mut env: JNIEnv,
 //!   _class: JClass,
 //!   // Further Arguments
@@ -23,7 +23,7 @@ pub mod utils;
 pub mod crypto;
 
 #[jni(base = "com.promtuz.core", class = "Core")]
-pub extern "C" fn initLogger<'local>(
+pub extern "system" fn initLogger<'local>(
     _env: JNIEnv<'local>,
     _class: JClass<'local>,
 ) {

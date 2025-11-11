@@ -16,13 +16,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.ui.theme.PromtuzTheme
+import org.koin.android.ext.android.inject
 
 class ManageSpace : ComponentActivity() {
+    private val keyManager: KeyManager by inject()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val keyManager = KeyManager(this)
 
         keyManager.initialize()
 
