@@ -1,0 +1,8 @@
+{
+  "seeds": [
+    {
+      "host": "arch.local",
+      "port": 4433
+    }
+  ]
+}

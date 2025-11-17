@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.promtuz.chat.data.local.databases.AppDatabase
 import com.promtuz.chat.data.local.entities.User
-import com.promtuz.chat.data.remote.ConnectionError
+//import com.promtuz.chat.data.remote.ConnectionError
 import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.presentation.state.WelcomeField
 import com.promtuz.chat.presentation.state.WelcomeStatus
@@ -55,7 +55,7 @@ class WelcomeVM(
         val (secret, public) = crypto.getStaticKeypair()
 
         // Step 2.
-        keyManager.storeSecretKey(secret) // secret is emptied
+        keyManager.storeSecretKey(secret)
         keyManager.storePublicKey(public)
 
         _uiState.value = _uiState.value.copy(status = WelcomeStatus.Connecting)
@@ -63,25 +63,29 @@ class WelcomeVM(
         if (!::quicClient.isInitialized) quicClient = inject<QuicClient>().value
 
         viewModelScope.launch {
-            quicClient.connect(context).onSuccess {
-                _uiState.value = _uiState.value.copy(status = WelcomeStatus.Success)
-                CoroutineScope(Dispatchers.IO).launch {
-                    users.insert(User(public, _uiState.value.nickname))
-                }
-                onSuccess()
-            }.onFailure {
-                val errorText = when (val e = it) {
-                    is ConnectionError.HandshakeFailed -> "Handshake Rejected : ${e.reason}"
-                    ConnectionError.NoInternet -> "No Internet"
-                    ConnectionError.ServerUnreachable -> "Server Unreachable"
-                    ConnectionError.Timeout -> "Connection Timed Out"
-                    is ConnectionError.Unknown -> e.exception.toString()
-                    else -> it.message
-                }
-
-                _uiState.value = _uiState.value.copy(errorText = errorText)
-                _uiState.value = _uiState.value.copy(status = WelcomeStatus.Normal)
-            }
+            users.insert(User(public, _uiState.value.nickname))
+            onSuccess()
         }
     }
+//        viewModelScope.launch {
+//            quicClient.connect(context).onSuccess {
+//                _uiState.value = _uiState.value.copy(status = WelcomeStatus.Success)
+//                CoroutineScope(Dispatchers.IO).launch {
+//                    users.insert(User(public, _uiState.value.nickname))
+//                }
+//                onSuccess()
+//            }.onFailure {
+//                val errorText = when (val e = it) {
+//                    is ConnectionError.HandshakeFailed -> "Handshake Rejected : ${e.reason}"
+//                    ConnectionError.NoInternet -> "No Internet"
+//                    ConnectionError.ServerUnreachable -> "Server Unreachable"
+//                    ConnectionError.Timeout -> "Connection Timed Out"
+//                    is ConnectionError.Unknown -> e.exception.toString()
+//                    else -> it.message
+//                }
+//
+//                _uiState.value = _uiState.value.copy(errorText = errorText)
+//                _uiState.value = _uiState.value.copy(status = WelcomeStatus.Normal)
+//            }
+//        }
 }

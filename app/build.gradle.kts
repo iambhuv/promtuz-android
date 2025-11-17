@@ -147,6 +147,7 @@ dependencies {
 
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.androidx.compose.navigation)
+
     implementation(libs.kwik)
 
     implementation(libs.msgpack.core)

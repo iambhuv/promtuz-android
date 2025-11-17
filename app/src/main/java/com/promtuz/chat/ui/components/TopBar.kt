@@ -1,11 +1,17 @@
 package com.promtuz.chat.ui.components
 
+//import com.promtuz.chat.data.remote.ConnectionStatus
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,14 +19,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.res.*
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.promtuz.chat.R
-import com.promtuz.chat.data.remote.ConnectionStatus
 import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.presentation.viewmodel.AppVM
 import com.promtuz.chat.ui.text.calSansfamily
@@ -29,6 +35,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import com.promtuz.chat.presentation.state.ConnectionState as CS
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,18 +46,21 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
     var dynamicTitle by remember { mutableStateOf(staticTitle) }
     var job by remember { mutableStateOf<Job?>(null) }
     val menuExpanded = remember { mutableStateOf(false) }
-
+    
     LaunchedEffect(quicClient) {
         snapshotFlow { quicClient.status.value }.collect { newStatus ->
             dynamicTitle = when (newStatus) {
-                ConnectionStatus.Disconnected, ConnectionStatus.NetworkError -> staticTitle
-                ConnectionStatus.Connecting -> context.getString(R.string.app_status_connecting)
-                ConnectionStatus.HandshakeFailed -> context.getString(R.string.app_status_handshake_fail)
-                ConnectionStatus.Connected -> {
-                    context.getString(R.string.app_status_connected).also {
+                CS.Idle, CS.Connected -> staticTitle
+
+                CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving -> context.getString(
+                    newStatus.text
+                )
+
+                CS.Connected -> {
+                    context.getString(newStatus.text).also {
                         job = launch {
                             delay(1200)
-                            if (quicClient.status.value == ConnectionStatus.Connected) {
+                            if (quicClient.status.value == CS.Connected) {
                                 dynamicTitle = staticTitle
                             }
                         }
@@ -61,24 +71,22 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
     }
 
     TopAppBar(
-        modifier = Modifier
-            .background(gradientScrim()),
+        modifier = Modifier.background(gradientScrim()),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
         navigationIcon = {
             Image(
                 painterResource(R.drawable.logo_colored),
                 contentDescription = "Promtuz App Logo",
-                modifier = Modifier.padding(horizontal = 12.dp).width(32.dp)
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .width(32.dp)
             )
         },
         title = {
             Text(
-                dynamicTitle,
-                fontFamily = calSansfamily,
-                fontSize = 26.sp,
+                dynamicTitle, fontFamily = calSansfamily, fontSize = 26.sp,
                 //textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
         },
         actions = {
@@ -88,6 +96,5 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
                 }
                 HomeMoreMenu(appViewModel, menuExpanded)
             }
-        }
-    )
+        })
 }

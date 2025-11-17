@@ -31,8 +31,7 @@ class AppVM(
 
     init {
         viewModelScope.launch {
-            val res = quicClient.connect(context)
-            println("QUIC RES : $res")
+            quicClient.resolve()
         }
     }
 }

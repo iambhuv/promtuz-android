@@ -5,6 +5,7 @@ import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.utils.media.ImageUtils
 import com.promtuz.core.Core
 import com.promtuz.core.Crypto
+import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -13,7 +14,7 @@ val appModule = module {
     single { Crypto() }
     single { KeyManager(androidContext(), get()) }
 
-    single { QuicClient(get(), get()) }
+    single { QuicClient(get(), get(), get()) }
 
     single { ImageUtils(get()) }
 }

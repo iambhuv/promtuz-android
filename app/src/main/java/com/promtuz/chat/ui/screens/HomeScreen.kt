@@ -170,12 +170,12 @@ fun StatsBox(
     keyManager: KeyManager = koinInject(),
     quicClient: QuicClient = koinInject()
 ) {
-    val status by quicClient.status
-
-    val keys = mapOf(
-        "IDENTITY PUBLIC KEY" to keyManager.getPublicKey(),
-        "SERVER PUBLIC KEY" to quicClient.handshake?.serverPublicKey?.bytes
-    )
+//    val status by quicClient.status
+//
+//    val keys = mapOf(
+//        "IDENTITY PUBLIC KEY" to keyManager.getPublicKey(),
+//        "SERVER PUBLIC KEY" to quicClient.handshake?.serverPublicKey?.bytes
+//    )
 
     Column(
         Modifier
@@ -187,24 +187,24 @@ fun StatsBox(
             .background(MaterialTheme.colorScheme.surfaceContainer)
             .padding(12.dp)
     ) {
-        Text("State : $status")
-
-        for ((text, bytes) in keys) {
-            Text(
-                text,
-                style = MaterialTheme.typography.bodyMediumEmphasized,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground.copy(0.6f),
-                modifier = Modifier.padding(
-                    bottom = 4.dp, top = if (text == keys.keys.first()) 0.dp else 8.dp
-                )
-            )
-            Text(
-                formatHex(bytes),
-                style = MaterialTheme.typography.bodyMediumEmphasized,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+//        Text("State : $status")
+//
+//        for ((text, bytes) in keys) {
+//            Text(
+//                text,
+//                style = MaterialTheme.typography.bodyMediumEmphasized,
+//                fontWeight = FontWeight.SemiBold,
+//                color = MaterialTheme.colorScheme.onBackground.copy(0.6f),
+//                modifier = Modifier.padding(
+//                    bottom = 4.dp, top = if (text == keys.keys.first()) 0.dp else 8.dp
+//                )
+//            )
+//            Text(
+//                formatHex(bytes),
+//                style = MaterialTheme.typography.bodyMediumEmphasized,
+//                color = MaterialTheme.colorScheme.onBackground
+//            )
+//        }
     }
 }
 
