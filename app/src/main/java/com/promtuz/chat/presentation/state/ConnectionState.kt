@@ -5,6 +5,11 @@ import com.promtuz.chat.R
 
 sealed class ConnectionState(@param:StringRes val text: Int) {
     /**
+     * Internet connection is not available.
+     */
+    object Offline : ConnectionState(R.string.state_offline)
+
+    /**
      * App hasn’t started any networking yet.
      */
     object Idle : ConnectionState(R.string.state_idle)

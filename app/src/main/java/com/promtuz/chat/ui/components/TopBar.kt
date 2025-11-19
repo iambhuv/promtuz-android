@@ -46,13 +46,13 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
     var dynamicTitle by remember { mutableStateOf(staticTitle) }
     var job by remember { mutableStateOf<Job?>(null) }
     val menuExpanded = remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(quicClient) {
         snapshotFlow { quicClient.status.value }.collect { newStatus ->
             dynamicTitle = when (newStatus) {
-                CS.Idle, CS.Connected -> staticTitle
+                CS.Idle -> staticTitle
 
-                CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving -> context.getString(
+                CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving, CS.Offline -> context.getString(
                     newStatus.text
                 )
 

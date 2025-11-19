@@ -1,6 +1,7 @@
 {
   "seeds": [
     {
+      "id": "ND67HOMGMS62YKGO",
       "host": "arch.local",
       "port": 4433
     }

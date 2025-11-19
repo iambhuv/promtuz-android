@@ -9,5 +9,5 @@ data class ResolverSeeds(
 
 @Serializable
 data class ResolverSeed(
-    @Serializable val host: String, @Serializable val port: UShort
+    @Serializable val id: String, @Serializable val host: String, @Serializable val port: UShort
 )

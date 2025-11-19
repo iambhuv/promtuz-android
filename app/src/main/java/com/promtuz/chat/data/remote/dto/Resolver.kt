@@ -1,7 +1,9 @@
 package com.promtuz.chat.data.remote.dto
 
+import com.promtuz.chat.utils.serialization.InetSocketAddressAsString
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.net.InetSocketAddress
 
 
 @Serializable
@@ -23,5 +25,6 @@ data class ClientResponseDto(
 @Serializable
 data class RelayDescriptor(
     val id: String,
-    val addr: String
+    @Serializable(with = InetSocketAddressAsString::class)
+    val addr: InetSocketAddress
 )

@@ -7,15 +7,16 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import com.promtuz.chat.data.remote.QuicClient
+import com.promtuz.chat.data.remote.dto.RelayDescriptor
 import com.promtuz.chat.domain.model.Chat
 import com.promtuz.chat.navigation.AppNavigator
 import com.promtuz.chat.navigation.Routes
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AppVM(
-    private val application: Application,
-    private val quicClient: QuicClient
+    private val application: Application, private val quicClient: QuicClient
 ) : ViewModel() {
     private val context: Context get() = application.applicationContext
 
@@ -31,7 +32,24 @@ class AppVM(
 
     init {
         viewModelScope.launch {
-            quicClient.resolve()
+            val real = quicClient.resolve()
+
+            real.onSuccess { resolved ->
+                // TODO: store these relays
+
+                for (relay in resolved.relays) {
+                    connectToRelay(relay).onSuccess {
+                        break
+                    }
+                }
+            }
         }
     }
+
+
+    private suspend fun connectToRelay(relay: RelayDescriptor): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            quicClient.connect(relay.addr)
+            Result.success(Unit)
+        }
 }
