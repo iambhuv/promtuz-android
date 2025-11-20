@@ -1,6 +1,12 @@
 package com.promtuz.chat.ui.components
 
 //import com.promtuz.chat.data.remote.ConnectionStatus
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,16 +25,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.promtuz.chat.R
 import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.presentation.viewmodel.AppVM
+import com.promtuz.chat.ui.constants.Buttonimations
+import com.promtuz.chat.ui.constants.Tweens
 import com.promtuz.chat.ui.text.calSansfamily
 import com.promtuz.chat.ui.theme.gradientScrim
 import kotlinx.coroutines.Job
@@ -83,11 +97,28 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
             )
         },
         title = {
-            Text(
-                dynamicTitle, fontFamily = calSansfamily, fontSize = 26.sp,
-                //textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
+            AnimatedContent(
+                dynamicTitle,
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+                transitionSpec = {
+                    (slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight },
+                        animationSpec = Tweens.microInteraction(300)
+                    ) + fadeIn(Tweens.microInteraction(300))) togetherWith (slideOutVertically(
+                        targetOffsetY = { fullHeight -> -fullHeight },
+                        animationSpec = Tweens.microInteraction(300)
+                    ) + fadeOut(Tweens.microInteraction(300)))
+                }) { text ->
+                Text(
+                    text,
+                    fontFamily = calSansfamily,
+                    fontSize = 26.sp,
+                    modifier = Modifier.graphicsLayer { // Allow overflow
+                        clip = false
+                    })
+            }
         },
         actions = {
             Box {

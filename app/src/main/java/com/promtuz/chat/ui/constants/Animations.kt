@@ -14,8 +14,8 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 
 object Tweens {
-    fun <T> microInteraction(): TweenSpec<T> {
-        return tween(150, easing = EaseInOutCirc)
+    fun <T> microInteraction(dur: Int = 150): TweenSpec<T> {
+        return tween(dur, easing = EaseInOutCirc)
     }
 }
 
@@ -42,5 +42,11 @@ object Naviganimation {
 
     fun popTransitionSpec() = ContentTransform(
         fadeIn(tween(300, 0, exitEase)),
-        fadeOut(tween(350, 0, initialExit)) + slideOutHorizontally(tween(350, 0, initialExit)) { (it * 0.75f).toInt() })
+        fadeOut(tween(350, 0, initialExit)) + slideOutHorizontally(
+            tween(
+                350,
+                0,
+                initialExit
+            )
+        ) { (it * 0.75f).toInt() })
 }
