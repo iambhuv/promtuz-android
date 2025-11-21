@@ -10,20 +10,20 @@ import com.promtuz.chat.R
 import com.promtuz.chat.data.remote.dto.ClientResponseDto
 import com.promtuz.chat.data.remote.dto.RelayDescriptor
 import com.promtuz.chat.data.remote.dto.ResolvedRelays
+import com.promtuz.chat.data.remote.proto.HandshakeProto
+import com.promtuz.chat.data.remote.proto.expectChallenge
 import com.promtuz.chat.data.remote.realtime.cborDecode
 import com.promtuz.chat.domain.model.ResolverSeeds
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.security.TrustManager
 import com.promtuz.core.Crypto
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.koin.core.component.KoinComponent
 import tech.kwik.core.QuicClientConnection
 import tech.kwik.core.QuicConnection
 import timber.log.Timber
-import java.net.InetSocketAddress
 import java.net.URI
 import com.promtuz.chat.presentation.state.ConnectionState as ConnState
 
@@ -80,8 +80,7 @@ class QuicClient(
 
                     val conn = QuicClientConnection.newBuilder()
                         .customTrustManager(TrustManager.pinned(context))
-                        .version(QuicConnection.QuicVersion.V1)
-                        .serverName(seed.id)
+                        .version(QuicConnection.QuicVersion.V1).serverName(seed.id)
                         .uri(URI("https://${seed.host}:${seed.port}"))
                         .applicationProtocol("client/$PROTOCOL_VERSION").build()
 
@@ -125,18 +124,58 @@ class QuicClient(
 
             val conn =
                 QuicClientConnection.newBuilder().customTrustManager(TrustManager.pinned(context))
-                    .version(QuicConnection.QuicVersion.V1)
-                    .serverName(relay.id)
+                    .version(QuicConnection.QuicVersion.V1).serverName(relay.id)
                     .uri(URI("https://${relay.addr.hostName}:${relay.addr.port}"))
                     .applicationProtocol("client/$PROTOCOL_VERSION").build()
             conn.connect()
 
             setState(ConnState.Handshaking)
 
-            // HANDSHAKE
-            delay(800) // FAKE HANDSHAKE DELAY FOR TESTING
+            // HANDSHAKE BEGIN
 
-            setState(ConnState.Connected)
+            val stream = conn.createStream(true)
+
+            val ipk = keyManager.getPublicKey()
+            val (esk, epk) = crypto.getEphemeralKeypair()
+
+            val clientHello = HandshakeProto.ClientHello(ipk.asList(), epk.asList())
+            stream.outputStream.write(clientHello.toBytes())
+
+            val challengeBytes = stream.inputStream.readNBytes(0x41) // 65 bytes
+            val challenge = HandshakeProto.fromBytes(challengeBytes, true).expectChallenge()
+
+            val dh = crypto.ephemeralDiffieHellman(esk, challenge.epk.toByteArray())
+            val key = crypto.deriveSharedKey(dh, ByteArray(32) { 0 }, "handshake.challenge.key")
+
+            val proof = crypto.decryptData(
+                cipher = challenge.ct.toByteArray(),
+                nonce = ByteArray(12) { 0 },
+                key = key,
+                ad = epk + challenge.epk
+            )
+
+            val clientProof = HandshakeProto.ClientProof(proof.toList())
+            stream.outputStream.write(clientProof.toBytes())
+
+            val serverResponseBytes = stream.inputStream.readAllBytes()
+
+            when (val serverResponse = HandshakeProto.fromBytes(serverResponseBytes, true)) {
+                is HandshakeProto.ServerAccept -> {
+                    log.d("Server Accepted at : ${serverResponse.timestamp}")
+
+                    setState(ConnState.Connected)
+                }
+
+                is HandshakeProto.ServerReject -> {
+                    log.d("Server Rejected with Reason : ${serverResponse.reason}")
+
+                    setState(ConnState.Failed)
+                }
+
+                else -> error("Unknown Server Response")
+            }
+
+            // HANDSHAKE END
 
             Result.success(conn)
         } catch (e: Exception) {

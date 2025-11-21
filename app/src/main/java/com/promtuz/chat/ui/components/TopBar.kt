@@ -2,6 +2,7 @@ package com.promtuz.chat.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -80,6 +81,14 @@ fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
                     .width(32.dp)
+                    .combinedClickable(
+                        indication = null,
+                        interactionSource = null,
+                        onClick = {},
+                        onDoubleClick = {
+                            appViewModel.connection()
+                        }
+                    )
             )
         },
         title = {

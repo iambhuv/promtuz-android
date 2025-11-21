@@ -25,13 +25,22 @@ class AppVM(
     var backStack = NavBackStack<NavKey>(Routes.App)
     val navigator = AppNavigator(backStack)
 
+    var connecting = false
+
     fun openChat(identityKey: Chat) {
         activeChatUser = identityKey
         navigator.push(Routes.Chat)
     }
 
     init {
+        connection()
+    }
+
+    fun connection() {
+        if (connecting) return
+
         viewModelScope.launch {
+            connecting = true
             val real = quicClient.resolve()
 
             real.onSuccess { resolved ->
@@ -43,6 +52,8 @@ class AppVM(
                     }
                 }
             }
+
+            connecting = false
         }
     }
 

@@ -21,7 +21,7 @@ class SecretKey(
         }
 
         return crypto.deriveSharedKey(
-            crypto.diffieHellman(this.key, publicKeyBytes), salt, info
+            crypto.diffieHellman(this.key, publicKeyBytes), salt.toByteArray(), info
         ).also {
             used = true
             key.fill(0)

@@ -29,7 +29,6 @@ class Crypto : KoinComponent {
 
     init {
         core.initLogger()
-        println("STATIC_KEYPAIR: ${getStaticKeypair()}")
     }
 
 
@@ -44,7 +43,7 @@ class Crypto : KoinComponent {
     ): ByteArray
 
     external fun deriveSharedKey(
-        rawKey: ByteArray, salt: String, info: String
+        rawKey: ByteArray, salt: ByteArray, info: String
     ): ByteArray
 
 
