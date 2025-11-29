@@ -1,11 +1,9 @@
 package com.promtuz.chat.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.unit.*
@@ -15,7 +13,9 @@ import com.promtuz.chat.ui.util.composeBubble
 import com.promtuz.chat.domain.model.UiMessagePosition as UiMsgPos
 
 @Composable
-fun MessageBubble(message: UiMessage) {
+fun MessageBubble(
+    message: UiMessage
+) {
     val colors = MaterialTheme.colorScheme
     val textStyle = MaterialTheme.typography
 
@@ -44,23 +44,21 @@ fun MessageBubble(message: UiMessage) {
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 18.dp)
-                    .padding(top = if (haveTopMargin) 2.dp else 0.dp),
+                    .padding(top = if (haveTopMargin) 4.dp else 0.dp),
                 horizontalArrangement = if (message.isSent) Arrangement.End else Arrangement.Start,
             ) {
                 Box(
                     Modifier
                         .widthIn(max = (this@BoxWithConstraints.maxWidth * 0.65f))
                         .drawBehind {
-                            val cornerRadius = 14.dp
-
                             composeBubble(
                                 containerColor,
-                                17.dp to 6.dp,
+                                14.dp to 6.dp,
                                 message.isSent,
                                 message.position
                             )
                         }
-                        .padding(10.dp, 5.dp)
+                        .padding(9.dp, 5.dp)
                 ) {
                     Text(
                         message.content,

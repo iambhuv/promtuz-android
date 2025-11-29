@@ -5,14 +5,19 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import com.promtuz.chat.data.dummy.DummyMessage
 import com.promtuz.chat.data.dummy.dummyMessages
+import com.promtuz.chat.data.dummy.randId
 import com.promtuz.chat.domain.model.UiMessage
 import com.promtuz.chat.domain.model.UiMessagePosition
+import com.promtuz.chat.security.KeyManager
+import com.promtuz.chat.utils.common.Time
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 class ChatVM(
-    private val application: Application
+    private val application: Application,
+    private val appViewModel: AppVM
 ) : ViewModel() {
     private val context: Context get() = application.applicationContext
 
@@ -30,7 +35,7 @@ class ChatVM(
             samePrev && sameNext -> UiMessagePosition.Middle
             samePrev && !sameNext -> UiMessagePosition.Start
             !samePrev && sameNext -> UiMessagePosition.End
-            else -> UiMessagePosition.Single // This should never be reached
+            else -> UiMessagePosition.Single
         }
 
 
@@ -39,8 +44,21 @@ class ChatVM(
         )
     }
 
+    fun dispatchMessage(content: String) {
+        _messages.update {
+            listOf(
+                UiMessage(
+                    randId(),
+                    content,
+                    true,
+                    UiMessagePosition.End,
+                    Time.now()
+                )
+            ) + it
+        }
+    }
 
     init {
-        _messages.value += dummyMessages.toUi()
+        _messages.update { it + dummyMessages.toUi() }
     }
 }

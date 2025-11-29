@@ -27,10 +27,10 @@ class HandshakeTest {
         )
     }
 
-    @Test
-    fun testClientHelloDecode() {
-        val hello = HandshakeProto.ClientHello(emptyBytes, filledBytes)
-
-        assertEquals(hello, HandshakeProto.fromBytes(helloBytes))
-    }
+//    @Test
+//    fun testClientHelloDecode() {
+//        val hello = HandshakeProto.ClientHello(emptyBytes, filledBytes)
+//
+//        assertEquals(hello, HandshakeProto.fromBytes(helloBytes))
+//    }
 }

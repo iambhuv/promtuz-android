@@ -1,13 +1,15 @@
+use std::error::Error;
+
 use common::crypto::EphemeralSecret;
 use jni::{
     JNIEnv,
-    objects::{JByteArray, JClass},
-    sys::jlong,
+    objects::{JByteArray, JClass, JObject},
+    signature::TypeSignature,
+    sys::{jlong, jobject},
 };
 use macros::jni;
 
 use crate::utils::KeyConversion;
-
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
 pub extern "system" fn ephemeralDiffieHellman<'local>(
@@ -28,18 +30,41 @@ pub extern "system" fn ephemeralDiffieHellman<'local>(
     JByteArray::from(shared_jarray)
 }
 
-#[jni(base = "com.promtuz.core", class = "Crypto")]
+
+/// Assuming class looks like 
+/// 
+/// ```kt
+/// package com.promtuz.chat.security
+/// 
+/// class StaticSecret(
+///    private val key: ByteArray,
+/// ) {
+///    private var used = false
+///    ...
+/// ```
+#[jni(base = "com.promtuz.chat.security", class = "StaticSecret")]
 pub extern "system" fn diffieHellman<'local>(
     mut env: JNIEnv<'local>,
-    _class: JClass,
-    secret_key_bytes: JByteArray,
+    class: JClass,
     public_key_bytes: JByteArray,
-) -> JByteArray<'local> {
-    let secret_key = secret_key_bytes.to_secret(&mut env);
-    let public_key = public_key_bytes.to_public(&mut env);
+) -> jobject {
+    let key = (|| {
+        let key_obj = env.get_field(&class, "key", "[B")?.l()?;
+        Ok::<_, jni::errors::Error>(JByteArray::from(key_obj))
+    })()
+    .expect("shouldn't happen");
 
-    let shared_key = secret_key.diffie_hellman(&public_key);
-    let shared_jarray = env.byte_array_from_slice(&shared_key.to_bytes()).unwrap();
+    if !env.get_field(&class, "used", "Z").unwrap().z().unwrap()
+        && env.set_field(&class, "used", "Z", true.into()).is_ok()
+    {
+        let secret_key = key.to_secret(&mut env);
+        let public_key = public_key_bytes.to_public(&mut env);
 
-    JByteArray::from(shared_jarray)
+        let shared_key = secret_key.diffie_hellman(&public_key);
+        let shared_jarray = env.byte_array_from_slice(&shared_key.to_bytes()).unwrap();
+
+        JByteArray::from(shared_jarray).as_raw()
+    } else {
+        JObject::null().as_raw()
+    }
 }

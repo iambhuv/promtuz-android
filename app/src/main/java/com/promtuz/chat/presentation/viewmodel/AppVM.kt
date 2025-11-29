@@ -14,6 +14,7 @@ import com.promtuz.chat.navigation.Routes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import tech.kwik.core.QuicClientConnection
 
 class AppVM(
     private val application: Application, private val quicClient: QuicClient
@@ -24,6 +25,9 @@ class AppVM(
 
     var backStack = NavBackStack<NavKey>(Routes.App)
     val navigator = AppNavigator(backStack)
+
+    var conn: QuicClientConnection? = null
+        private set
 
     var connecting = false
 
@@ -61,7 +65,7 @@ class AppVM(
     private suspend fun connectToRelay(relay: RelayDescriptor): Result<Unit> =
         withContext(Dispatchers.IO) {
             quicClient.connect(relay).map { conn ->
-                
+                this@AppVM.conn = conn
                 // prolly create some handler class instance using conn & save it inside vm
             }
         }

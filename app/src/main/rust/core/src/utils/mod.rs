@@ -1,9 +1,9 @@
+use common::crypto::{PublicKey, StaticSecret, encrypt::Encrypted, sign::SigningKey};
 use jni::{
     JNIEnv,
     objects::{JByteArray, JValue},
     sys::jobject,
 };
-use common::crypto::{PublicKey, StaticSecret, encrypt::Encrypted};
 
 pub fn get_pair_object(env: &mut JNIEnv, first: JValue, second: JValue) -> jobject {
     let pair_class = env
@@ -23,6 +23,7 @@ pub trait KeyConversion {
     fn to_bytes(self, env: &JNIEnv) -> [u8; 32];
     fn to_public(self, env: &mut JNIEnv) -> PublicKey;
     fn to_secret(self, env: &mut JNIEnv) -> StaticSecret;
+    fn to_signing(self, env: &mut JNIEnv<'_>) -> SigningKey;
 }
 
 impl KeyConversion for JByteArray<'_> {
@@ -37,6 +38,10 @@ impl KeyConversion for JByteArray<'_> {
 
     fn to_secret(self, env: &mut JNIEnv<'_>) -> StaticSecret {
         StaticSecret::from(self.to_bytes(env))
+    }
+
+    fn to_signing(self, env: &mut JNIEnv<'_>) -> SigningKey {
+        SigningKey::from(self.to_bytes(env))
     }
 }
 

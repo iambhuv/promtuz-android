@@ -4,12 +4,17 @@ import java.util.Calendar
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
-private fun randId() = kotlin.uuid.Uuid.random().toHexString()
+fun randId() = kotlin.uuid.Uuid.random().toHexString()
 
 @OptIn(ExperimentalUuidApi::class)
 private fun relativeTime(relTime: Long) = Calendar.getInstance().timeInMillis + relTime
 
-data class DummyMessage(val id: String, val content: String, val isSent: Boolean, val timestamp: Long)
+data class DummyMessage(
+    val id: String,
+    val content: String,
+    val isSent: Boolean,
+    val timestamp: Long
+)
 
 /**
  * ORDER: New on top

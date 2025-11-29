@@ -20,7 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -42,7 +41,6 @@ fun ShareIdentityScreen(
     viewModel: ShareIdentityVM
 ) {
     val context = LocalContext.current
-    val publicIdentity by viewModel.publicIdentity.collectAsState()
     val captureController = rememberCaptureController()
     val colors = MaterialTheme.colorScheme
 
@@ -64,7 +62,9 @@ fun ShareIdentityScreen(
                         .align(Alignment.CenterHorizontally)
                         .capturable(captureController)
                 ) {
-                    publicIdentity?.let { IdentityQrCode(it) }
+//                    publicIdentity?.let {
+//                    }
+                    IdentityQrCode(viewModel.qrData.collectAsState())
                 }
                 Column(
                     Modifier.fillMaxWidth(),

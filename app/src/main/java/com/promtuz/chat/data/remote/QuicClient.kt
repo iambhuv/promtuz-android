@@ -160,10 +160,11 @@ class QuicClient(
             val reader = PacketReader(stream.inputStream)
 
             val ipk = keyManager.getPublicKey()
+            val isk = keyManager.getSecretKey()
 
-            val (esk, epk) = crypto.getEphemeralKeypair()
+//            val (esk, epk) = crypto.getEphemeralKeypair()
 
-            val clientHello = HandshakeProto.ClientHello(ipk.bytes(), epk.bytes())
+            val clientHello = HandshakeProto.ClientHello(ipk.bytes()) //, epk.bytes())
             stream.outputStream.write(framePacket(clientHello.toCbor()))
 
             val challengeBytes = reader.readPacket()
@@ -171,15 +172,15 @@ class QuicClient(
                 "Unexpected Server Message"
             )
 
-            val dh = crypto.ephemeralDiffieHellman(esk, challenge.epk.bytes)
+            val dh = isk.diffieHellman(challenge.epk.bytes)
 
             val key = crypto.deriveSharedKey(dh, ByteArray(32), "handshake.challenge.key")
 
-            val ad = epk + challenge.epk.bytes
+            val ad = ipk + challenge.epk.bytes
 
 
             val proof = crypto.decryptData(
-                cipher = challenge.ct.bytes, nonce = ByteArray(12) { 0 }, key = key, ad
+                cipher = challenge.ct.bytes, nonce = ByteArray(12), key = key, ad
             )
 
             val clientProof = HandshakeProto.ClientProof(proof.bytes())

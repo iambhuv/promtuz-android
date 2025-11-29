@@ -94,12 +94,12 @@ class KeyManager(context: Context, private val crypto: Crypto) {
                 && null != prefs.getString(IDENTITY_SECRET_IV, null)
     }
 
-    fun getSecretKey(): SecretKey? {
-        val encryptedKeyStr = prefs.getString(IDENTITY_SECRET, null) ?: return null
-        val ivStr = prefs.getString(IDENTITY_SECRET_IV, null) ?: return null
+    fun getSecretKey(): StaticSecret {
+        val encryptedKeyStr = prefs.getString(IDENTITY_SECRET, null) ?: error("idk")
+        val ivStr = prefs.getString(IDENTITY_SECRET_IV, null) ?: error("idk")
         val cipher = Base64.decode(encryptedKeyStr)
         val iv = Base64.decode(ivStr)
-        return SecretKey(decryptWithKeystoreKey(cipher, iv), crypto)
+        return StaticSecret(decryptWithKeystoreKey(cipher, iv))
     }
 
     @Throws(IOException::class)

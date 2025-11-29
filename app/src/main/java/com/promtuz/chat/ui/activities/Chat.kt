@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.ui.graphics.*
 import com.promtuz.chat.data.dummy.dummyChats
+import com.promtuz.chat.presentation.viewmodel.AppVM
 import com.promtuz.chat.presentation.viewmodel.ChatVM
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.ui.screens.ChatScreen
@@ -15,13 +16,15 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class Chat : AppCompatActivity() {
-    private val viewModel by viewModel<ChatVM>()
-    private val keyManager: KeyManager by inject<KeyManager>()
+    private val appViewModel: AppVM by inject()
+    private val viewModel: ChatVM by viewModel()
+//    private val keyManager: KeyManager by inject<KeyManager>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val userIdentity = intent.getByteArrayExtra("user")?.takeIf { it.size == 32 } ?: return finish()
+        val userIdentity =
+            intent.getByteArrayExtra("user")?.takeIf { it.size == 32 } ?: return finish()
         // FIXME: very temporary
         val chat = dummyChats.find { it.identity.contentEquals(userIdentity) } ?: return finish()
 
@@ -41,7 +44,7 @@ class Chat : AppCompatActivity() {
             PromtuzTheme {
                 ChatScreen(
                     chat,
-                    viewModel
+                    viewModel,
                 )
             }
         }

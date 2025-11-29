@@ -20,6 +20,9 @@ data class EncryptedData(
 class Crypto : KoinComponent {
     val core by inject<Core>()
 
+    /**
+     * @return (SecretKey, PublicKey)
+     */
     external fun getStaticKeypair(): Pair<ByteArray, ByteArray>
 
     /**

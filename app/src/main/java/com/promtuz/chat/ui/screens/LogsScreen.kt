@@ -13,16 +13,27 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import com.promtuz.chat.R
 import com.promtuz.chat.ui.components.SimpleScreen
 import com.promtuz.chat.utils.logs.AppLog
 import com.promtuz.chat.utils.logs.AppLogger
@@ -32,9 +43,27 @@ import java.util.Locale
 
 @Composable
 fun LogsScreen() {
-    SimpleScreen({ Text("App Logs") }) { padding ->
+    var wrappingText by remember { mutableStateOf(false) }
+
+    SimpleScreen({ Text("App Logs") }, actions = {
+        IconButton(
+            {
+                wrappingText = !wrappingText
+            }, colors = IconButtonDefaults.iconButtonColors(
+                containerColor = if (wrappingText) MaterialTheme.colorScheme.surfaceContainer else Color.Unspecified
+            )
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.i_wrap_text),
+                contentDescription = "Wrap Text",
+                Modifier,
+                MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }) { padding ->
         val logs by AppLogger.logs.collectAsState()
 
+//        SelectionContainer {
         LazyColumn(
             Modifier
                 .padding(padding)
@@ -43,15 +72,18 @@ fun LogsScreen() {
                 .background(MaterialTheme.colorScheme.surfaceContainerLow)
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .horizontalScroll(rememberScrollState())
+                .horizontalScroll(rememberScrollState(), enabled = !wrappingText)
                 .padding(8.dp, 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
             reverseLayout = true
         ) {
-            items(logs) { log ->
-                LogEntry(log)
+            items(logs, key = { it.hashCode() }) { log ->
+                SelectionContainer {
+                    LogEntry(log)
+                }
             }
         }
+//        }
     }
 }
 

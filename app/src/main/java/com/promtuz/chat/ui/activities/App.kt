@@ -14,8 +14,8 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class App : AppCompatActivity() {
-    private val viewModel by viewModel<AppVM>()
-    private val keyManager: KeyManager by inject<KeyManager>()
+    private val viewModel: AppVM by inject()
+    private val keyManager: KeyManager by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

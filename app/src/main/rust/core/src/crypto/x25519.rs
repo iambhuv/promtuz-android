@@ -1,7 +1,11 @@
-use common::crypto::{get_ephemeral_keypair, get_shared_key, get_static_keypair};
+use std::error::Error;
+
+use common::crypto::{
+    StaticSecret, get_ephemeral_keypair, get_shared_key, get_static_keypair, sign::derive_ed25519,
+};
 use jni::{
     JNIEnv,
-    objects::{JByteArray, JClass, JObject, JString, JValue},
+    objects::{AsJArrayRaw, JByteArray, JClass, JObject, JString, JValue, JValueGen},
     sys::{jlong, jobject},
 };
 use macros::jni;
@@ -9,10 +13,7 @@ use macros::jni;
 use crate::utils::{KeyConversion, get_pair_object};
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
-pub extern "system" fn getStaticKeypair(
-    mut env: JNIEnv, 
-    _class: JClass
-) -> jobject {
+pub extern "system" fn getStaticKeypair(mut env: JNIEnv, _class: JClass) -> jobject {
     let (secret, public) = get_static_keypair();
 
     let secret_bytes = secret.to_bytes();
@@ -27,7 +28,6 @@ pub extern "system" fn getStaticKeypair(
         JValue::Object(&JObject::from(public_jarray)),
     )
 }
-
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
 pub extern "system" fn getEphemeralKeypair<'local>(
@@ -86,4 +86,38 @@ pub extern "system" fn deriveSharedKey<'local>(
     let shared_key = get_shared_key(&raw_shared_key_slice, &salt, &info);
 
     env.byte_array_from_slice(&shared_key).unwrap()
+}
+
+/// Derives signing key from secret key
+#[jni(base = "com.promtuz.chat.security", class = "StaticSecret")]
+pub extern "system" fn toSigningKey(mut env: JNIEnv, class: JClass) -> jobject {
+    (|| {
+        let pkey_obj = env.get_field(class, "key", "[B")?.l()?;
+        let key: [u8; 32] = JByteArray::from(pkey_obj).to_bytes(&env);
+
+        let skey = env.byte_array_from_slice(derive_ed25519(&key).as_bytes())?;
+        let skey_obj = unsafe { JObject::from_raw(skey.as_jarray_raw()) };
+
+        let sign_key_class = env.find_class("com/promtuz/chat/security/SigningKey")?;
+        let inst = env.new_object(sign_key_class, "([B)V", &[(&skey_obj).into()])?;
+
+        Ok::<*mut jni::sys::_jobject, jni::errors::Error>(inst.as_raw())
+    })()
+    .unwrap_or(JObject::null().as_raw())
+}
+
+///
+/// `external fun getVerificationKey(): ByteArray`
+///
+#[jni(base = "com.promtuz.chat.security", class = "SigningKey")]
+pub extern "system" fn getVerificationKey(mut env: JNIEnv, class: JClass) -> jobject {
+    (|| {
+        let key_obj = env.get_field(class, "key", "[B")?.l()?;
+        let key = JByteArray::from(key_obj).to_signing(&mut env);
+
+        let arr = env.byte_array_from_slice(key.verifying_key().as_bytes())?;
+
+        Ok::<*mut jni::sys::_jobject, jni::errors::Error>(arr.as_raw())
+    })()
+    .unwrap_or(JObject::null().as_raw())
 }

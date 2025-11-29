@@ -22,6 +22,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.promtuz.chat.R
 import com.promtuz.chat.data.repository.UserRepository
 import com.promtuz.chat.domain.model.Chat
+import com.promtuz.chat.presentation.viewmodel.AppVM
 import com.promtuz.chat.presentation.viewmodel.ChatVM
 import com.promtuz.chat.ui.components.ChatBottomBar
 import com.promtuz.chat.ui.components.ChatTopBar
@@ -43,7 +44,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun ChatScreen(
     chat: Chat,
-    viewModel: ChatVM = koinViewModel(),
+    viewModel: ChatVM,
     userRepository: UserRepository = koinInject()
 ) {
     val direction = LocalLayoutDirection.current
@@ -67,8 +68,8 @@ fun ChatScreen(
         Modifier
             .fillMaxSize()
             .imePadding(),
-        topBar = { ChatTopBar(chat, hazeState) },
-        bottomBar = { ChatBottomBar(hazeState, interactionSource) }
+        topBar = { ChatTopBar(chat, viewModel, hazeState) },
+        bottomBar = { ChatBottomBar(hazeState, viewModel, interactionSource) }
     ) { padding ->
         LazyColumn(
             Modifier

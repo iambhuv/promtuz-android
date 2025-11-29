@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 sealed class HandshakeProto {
     @Serializable
     data class ClientHello(
-        val ipk: Bytes, val epk: Bytes
+        val ipk: Bytes//, val epk: Bytes
     ) : HandshakeProto()
 
     @Serializable

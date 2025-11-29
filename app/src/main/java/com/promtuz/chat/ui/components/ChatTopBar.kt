@@ -20,13 +20,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.promtuz.chat.R
 import com.promtuz.chat.domain.model.Chat
+import com.promtuz.chat.presentation.viewmodel.ChatVM
 import dev.chrisbanes.haze.HazeDefaults
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.hazeEffect
 
 @Composable
-fun ChatTopBar(chat: Chat, haze: HazeState) {
+fun ChatTopBar(chat: Chat, viewModel: ChatVM, haze: HazeState) {
     val backHandler = LocalOnBackPressedDispatcherOwner.current
     val colors = MaterialTheme.colorScheme
     val textStyle = MaterialTheme.typography

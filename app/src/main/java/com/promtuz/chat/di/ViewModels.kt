@@ -1,15 +1,24 @@
 package com.promtuz.chat.di
 
-import com.promtuz.chat.presentation.viewmodel.*
+import com.promtuz.chat.presentation.viewmodel.AppVM
+import com.promtuz.chat.presentation.viewmodel.ChatVM
+import com.promtuz.chat.presentation.viewmodel.QrScannerVM
+import com.promtuz.chat.presentation.viewmodel.SavedUsersVM
+import com.promtuz.chat.presentation.viewmodel.SettingsVM
+import com.promtuz.chat.presentation.viewmodel.ShareIdentityVM
+import com.promtuz.chat.presentation.viewmodel.WelcomeVM
+import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModel
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val vmModule = module {
-    viewModel { WelcomeVM(get(), get(), get(), get()) }
-    viewModel { AppVM(get(), get()) }
-    viewModel { ShareIdentityVM(get(), get(), get()) }
-    viewModel { QrScannerVM(get(), get()) }
-    viewModel { SavedUsersVM(get(), get()) }
-    viewModel { SettingsVM(get()) }
-    viewModel { ChatVM(get()) }
+    singleOf(::AppVM)
+
+    viewModelOf(::WelcomeVM)
+    viewModelOf(::ShareIdentityVM)
+    viewModelOf(::QrScannerVM)
+    viewModelOf(::SavedUsersVM)
+    viewModelOf(::SettingsVM)
+    viewModelOf(::ChatVM)
 }

@@ -6,7 +6,6 @@ import java.util.Date
 import java.util.Locale
 
 class Time {
-
     companion object {
         private val simpleDateFormat = SimpleDateFormat("dd MMMM yyyy, HH:mm:ss", Locale.ENGLISH)
 
@@ -14,6 +13,11 @@ class Time {
 
         fun getDateString(time: Long): String = simpleDateFormat.format(tsToDate(time * 1000L))
         fun getDateString(time: ULong): String = getDateString(time.toLong())
+
+        /**
+         * Returns current system time in milliseconds
+         */
+        fun now(): Long = Calendar.getInstance().timeInMillis
     }
 }
 

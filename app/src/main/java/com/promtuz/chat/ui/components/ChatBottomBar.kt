@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LocalContentColor
@@ -42,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import com.promtuz.chat.R
+import com.promtuz.chat.presentation.viewmodel.ChatVM
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.HazeStyle
 import dev.chrisbanes.haze.HazeTint
@@ -49,7 +51,7 @@ import dev.chrisbanes.haze.hazeEffect
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChatBottomBar(haze: HazeState, interactionSource: MutableInteractionSource) {
+fun ChatBottomBar(haze: HazeState, viewModel: ChatVM, interactionSource: MutableInteractionSource) {
     val colors = MaterialTheme.colorScheme
     val textStyle = MaterialTheme.typography
     val windowInfo = LocalWindowInfo.current
@@ -69,6 +71,15 @@ fun ChatBottomBar(haze: HazeState, interactionSource: MutableInteractionSource) 
     val editorTextSize = 16.5.sp
     val base = MaterialTheme.colorScheme.background
     val editorShape = RoundedCornerShape(20.dp)
+
+    /**
+     * Dispatches message if it can
+     */
+    val handleSend = {
+        if (message.isNotEmpty()) {
+            viewModel.dispatchMessage(message)
+        }
+    }
 
     Row(
         Modifier
@@ -103,7 +114,8 @@ fun ChatBottomBar(haze: HazeState, interactionSource: MutableInteractionSource) 
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
-                interactionSource = interactionSource
+                interactionSource = interactionSource,
+                keyboardActions = KeyboardActions(onSend = { handleSend() })
             ) { innerTextField ->
                 Box(Modifier.padding(8.dp, 5.dp), contentAlignment = Alignment.Center) {
                     Box(Modifier.fillMaxWidth()) {
@@ -121,7 +133,7 @@ fun ChatBottomBar(haze: HazeState, interactionSource: MutableInteractionSource) 
         }
 
         FilledIconButton(
-            onClick = {},
+            onClick = { handleSend() },
             Modifier
                 .size(38.dp)
                 .align(Alignment.Bottom),

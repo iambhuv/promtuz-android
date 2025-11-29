@@ -1,25 +1,32 @@
 package com.promtuz.chat.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.*
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.platform.*
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.viewinterop.*
-import androidx.core.view.doOnLayout
-import com.promtuz.chat.domain.model.Identity
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.promtuz.chat.ui.views.QrView
 
 @Composable
 fun IdentityQrCode(
-    identity: Identity, modifier: Modifier = Modifier
+    data: State<ByteArray?>, modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
 
@@ -27,7 +34,8 @@ fun IdentityQrCode(
     val containerColor = Color.White
     val modulesColor = Color.Black
 
-    val data = remember { identity.toByteArray() }
+    val data by data
+    val loading by remember { derivedStateOf { data == null } }
     val qrView = remember { QrView(context) }
 
     Box(
@@ -35,31 +43,32 @@ fun IdentityQrCode(
             .padding(48.dp)
             .clip(RoundedCornerShape(12))
             .background(containerColor)
+            .padding(32.dp)
+            .aspectRatio(1f)
     ) {
-        HorizontalPager(
-            rememberPagerState(pageCount = { 2 }),
-            key = { it },
-            modifier = Modifier
-                .padding(32.dp)
-                .aspectRatio(1f),
-            overscrollEffect = null,
-            pageSpacing = 18.dp,
-        ) { page ->
-            when (page) {
-                0 -> AndroidView(
-                    factory = { qrView },
-                    update = { v ->
-                        v.doOnLayout {
-                            v.content = data
-                            v.sizePx = v.width
-                            v.color = modulesColor.toArgb()
-                            v.regenerate()
-                        }
-                    })
-
-                1 -> IdentityHexGrid(identity.key)
-            }
+        AnimatedVisibility(loading) {
+            LoadingIndicator(
+                Modifier
+                    .align(Alignment.Center)
+                    .fillMaxSize(0.4f)
+            )
         }
-
+//        HorizontalPager(
+//            rememberPagerState(pageCount = { 2 }),
+//            key = { it },
+//            modifier = Modifier
+//                .padding(32.dp)
+//                .aspectRatio(1f),
+//            overscrollEffect = null,
+//            pageSpacing = 18.dp,
+//        ) { page ->
+//            when (page) {
+//                0 ->
+        AndroidView(factory = { qrView }, update = { v ->
+            v.loading = loading
+            data?.let { v.content = it }
+            v.color = modulesColor.toArgb()
+            v.regenerate()
+        })
     }
 }

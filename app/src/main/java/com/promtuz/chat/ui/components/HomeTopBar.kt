@@ -38,7 +38,7 @@ import com.promtuz.chat.presentation.state.ConnectionState as CS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
+fun HomeTopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val staticTitle = stringResource(R.string.app_name)

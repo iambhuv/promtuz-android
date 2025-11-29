@@ -18,11 +18,11 @@ class QrView(context: Context) : View(context) {
     var sizePx = 0
     var color = Color.BLACK
     var cached: Bitmap? = null
+    var loading = true
 
     private val writer = QRCodeWriter()
     private val hints = mapOf(
-        EncodeHintType.CHARACTER_SET to "ISO-8859-1",
-        EncodeHintType.MARGIN to 0
+        EncodeHintType.CHARACTER_SET to "ISO-8859-1", EncodeHintType.MARGIN to 0
     )
 
     fun setBitmap(bmp: Bitmap?) {
@@ -35,10 +35,7 @@ class QrView(context: Context) : View(context) {
 
         // Step 1 — generate tiny QR (fast)
         val matrix = writer.encode(
-            content.toString(Charsets.ISO_8859_1),
-            BarcodeFormat.QR_CODE,
-            0, 0,
-            hints
+            content.toString(Charsets.ISO_8859_1), BarcodeFormat.QR_CODE, 0, 0, hints
         )
 
         val w = matrix.width
@@ -64,12 +61,20 @@ class QrView(context: Context) : View(context) {
     }
 
     override fun onDraw(canvas: Canvas) {
-        cached?.let { canvas.drawBitmap(it, 0f, 0f, null) }
+        if (!loading) {
+            cached?.let { canvas.drawBitmap(it, 0f, 0f, null) }
+        }
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         cached?.recycle()
         cached = null
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        sizePx = w
+        regenerate()
     }
 }
