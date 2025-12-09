@@ -1,14 +1,17 @@
-use common::crypto::{PublicKey, StaticSecret, encrypt::Encrypted, sign::SigningKey};
-use jni::{
-    JNIEnv,
-    objects::{JByteArray, JValue},
-    sys::jobject,
-};
+use common::crypto::PublicKey;
+use common::crypto::StaticSecret;
+use common::crypto::encrypt::Encrypted;
+use common::crypto::sign::SigningKey;
+use jni::JNIEnv;
+use jni::objects::JByteArray;
+use jni::objects::JValue;
+use jni::sys::jobject;
+
+pub mod error;
+pub mod ujni;
 
 pub fn get_pair_object(env: &mut JNIEnv, first: JValue, second: JValue) -> jobject {
-    let pair_class = env
-        .find_class("kotlin/Pair")
-        .expect("kotlin.Pair is not found.");
+    let pair_class = env.find_class("kotlin/Pair").expect("kotlin.Pair is not found.");
 
     env.new_object(
         pair_class,
@@ -23,7 +26,7 @@ pub trait KeyConversion {
     fn to_bytes(self, env: &JNIEnv) -> [u8; 32];
     fn to_public(self, env: &mut JNIEnv) -> PublicKey;
     fn to_secret(self, env: &mut JNIEnv) -> StaticSecret;
-    fn to_signing(self, env: &mut JNIEnv<'_>) -> SigningKey;
+    fn to_signing(self, env: &mut JNIEnv) -> SigningKey;
 }
 
 impl KeyConversion for JByteArray<'_> {
@@ -46,9 +49,7 @@ impl KeyConversion for JByteArray<'_> {
 }
 
 pub fn create_encrypted_data(
-    env: &mut JNIEnv,
-    nonce: Vec<u8>,
-    cipher: Vec<u8>,
+    env: &mut JNIEnv, nonce: Vec<u8>, cipher: Vec<u8>,
 ) -> Result<jobject, jni::errors::Error> {
     // Convert to byte arrays
     let nonce_array = env.byte_array_from_slice(&nonce)?;
@@ -59,10 +60,7 @@ pub fn create_encrypted_data(
     let obj = env.new_object(
         "com/promtuz/rust/EncryptedData",
         "([B[B)V", // Still byte arrays!
-        &[
-            JValue::Object(&nonce_array.into()),
-            JValue::Object(&cipher_array.into()),
-        ],
+        &[JValue::Object(&nonce_array.into()), JValue::Object(&cipher_array.into())],
     )?;
 
     Ok(obj.into_raw())

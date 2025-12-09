@@ -71,9 +71,9 @@ fun ShareIdentityScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ShareQRButton {
-                        viewModel.shareQrCode(captureController) { context.startActivity(it) }
-                    }
+//                    ShareQRButton {
+//                        viewModel.shareQrCode(captureController) { context.startActivity(it) }
+//                    }
                     ScanQRButton()
                 }
             }
@@ -104,7 +104,7 @@ private fun ColumnScope.ShareQRButton(modifier: Modifier = Modifier, onShare: ()
 private fun ColumnScope.ScanQRButton(modifier: Modifier = Modifier) {
     val context = LocalContext.current
 
-    TextButton(
+    Button(
         {
             context.startActivity(Intent(context, QrScanner::class.java))
         },

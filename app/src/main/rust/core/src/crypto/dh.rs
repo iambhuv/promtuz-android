@@ -1,12 +1,13 @@
 use std::error::Error;
 
 use common::crypto::EphemeralSecret;
-use jni::{
-    JNIEnv,
-    objects::{JByteArray, JClass, JObject},
-    signature::TypeSignature,
-    sys::{jlong, jobject},
-};
+use jni::JNIEnv;
+use jni::objects::JByteArray;
+use jni::objects::JClass;
+use jni::objects::JObject;
+use jni::signature::TypeSignature;
+use jni::sys::jlong;
+use jni::sys::jobject;
 use macros::jni;
 
 use crate::utils::KeyConversion;
@@ -30,12 +31,11 @@ pub extern "system" fn ephemeralDiffieHellman<'local>(
     JByteArray::from(shared_jarray)
 }
 
-
-/// Assuming class looks like 
-/// 
+/// Assuming class looks like
+///
 /// ```kt
 /// package com.promtuz.chat.security
-/// 
+///
 /// class StaticSecret(
 ///    private val key: ByteArray,
 /// ) {
@@ -44,9 +44,7 @@ pub extern "system" fn ephemeralDiffieHellman<'local>(
 /// ```
 #[jni(base = "com.promtuz.chat.security", class = "StaticSecret")]
 pub extern "system" fn diffieHellman<'local>(
-    mut env: JNIEnv<'local>,
-    class: JClass,
-    public_key_bytes: JByteArray,
+    mut env: JNIEnv<'local>, class: JClass, public_key_bytes: JByteArray,
 ) -> jobject {
     let key = (|| {
         let key_obj = env.get_field(&class, "key", "[B")?.l()?;

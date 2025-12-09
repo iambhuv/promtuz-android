@@ -7,10 +7,13 @@ import android.widget.Toast
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.promtuz.chat.data.remote.proto.IdentityPacket
 import com.promtuz.chat.data.repository.UserRepository
+import com.promtuz.chat.domain.model.Identity
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.utils.media.ImageUtils
 import com.promtuz.chat.utils.serialization.AppCbor
+import com.promtuz.chat.utils.serialization.cborDecode
 import com.promtuz.core.Crypto
 import dev.shreyaspatil.capturable.controller.CaptureController
 import kotlinx.coroutines.coroutineScope
@@ -19,17 +22,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToByteArray
-import java.net.InetSocketAddress
-
-@Serializable
-data class TempIdentity(
-    val ipk: ByteArray, val epk: ByteArray, val vfk: ByteArray, val addr: String?
-) {
-    override fun equals(other: Any?) = TODO()
-    override fun hashCode() = TODO()
-}
+import tech.kwik.core.QuicClientConnection
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 @OptIn(ExperimentalSerializationApi::class)
 class ShareIdentityVM(
@@ -50,25 +46,54 @@ class ShareIdentityVM(
     suspend fun init() = coroutineScope {
         keyPair = crypto.getStaticKeypair()
 
-        val relayAddr = appVM.conn?.serverAddress
-            ?: waitForRelay()
+        // TODO: open local connection, wait on it
+        //  ask for public addr from relay
+        //  swap the port with local connection
+        //  send that addr on qr
+
+        val conn = appVM.conn ?: waitForRelay()
+        val relayAddr = conn.serverAddress
 
         val verifyKey = keyManager.getSecretKey().toSigningKey().getVerificationKey()
         val publicKey = keyManager.getPublicKey()
 
-        val identity = TempIdentity(
+        val identity = Identity(
             publicKey,
             keyPair.second,
             verifyKey,
-            "${relayAddr.hostString}:${relayAddr.port}"
+            "${relayAddr.hostString}:${relayAddr.port}",
+            userRepository.getCurrentUser().nickname
         )
 
         _qrData.value = AppCbor.instance.encodeToByteArray(identity)
+
+        // listening for identity ping
+
+        val stream = conn.createStream(true)
+
+        while (true) {
+            val packet = stream.inputStream.readNBytes(
+                ByteBuffer.wrap(stream.inputStream.readNBytes(4)).order(ByteOrder.BIG_ENDIAN).int
+            )
+
+            // @formatter:off
+            val data =
+                cborDecode<IdentityPacket.AddMe>(packet)
+            // @formatter:on
+
+            when (data) {
+                is IdentityPacket.AddMe -> {
+                    
+                }
+
+                null -> {}
+            }
+        }
     }
 
-    private suspend fun waitForRelay(): InetSocketAddress {
+    private suspend fun waitForRelay(): QuicClientConnection {
         while (true) {
-            appVM.conn?.serverAddress?.let { return it }
+            appVM.conn?.let { return it }
             delay(100) // non-blocking wait
         }
     }

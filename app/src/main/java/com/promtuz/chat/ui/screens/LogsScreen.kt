@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -34,7 +35,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.promtuz.chat.R
 import com.promtuz.chat.ui.components.SimpleScreen
-import com.promtuz.chat.utils.extensions.then
 import com.promtuz.chat.utils.logs.AppLog
 import com.promtuz.chat.utils.logs.AppLogger
 import java.text.SimpleDateFormat
@@ -43,14 +43,14 @@ import java.util.Locale
 
 @Composable
 fun LogsScreen() {
-    var wrappingText by remember { mutableStateOf(false) }
+    var wrapText by remember { mutableStateOf(false) }
 
     SimpleScreen({ Text("App Logs") }, actions = {
         IconButton(
             {
-                wrappingText = !wrappingText
+                wrapText = !wrapText
             }, colors = IconButtonDefaults.iconButtonColors(
-                containerColor = if (wrappingText) MaterialTheme.colorScheme.surfaceContainer else Color.Unspecified
+                containerColor = if (wrapText) MaterialTheme.colorScheme.surfaceContainer else Color.Unspecified
             )
         ) {
             Icon(
@@ -61,32 +61,39 @@ fun LogsScreen() {
             )
         }
     }) { padding ->
-        val logs by AppLogger.logs.collectAsState()
+        LogsContainer(Modifier, padding, wrapText)
+    }
+}
 
-//        SelectionContainer {
-        LazyColumn(
-            Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .clip(MaterialTheme.shapes.extraLarge)
-                .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                .fillMaxWidth()
-                .fillMaxHeight()
-                .padding(8.dp, 10.dp)
-                .let {
-                    if (wrappingText) it.horizontalScroll(rememberScrollState())
-                    else it
-                },
-            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
-            reverseLayout = true
-        ) {
-            items(logs, key = { it.hashCode() }) { log ->
-                SelectionContainer {
-                    LogEntry(log)
-                }
+
+@Composable
+fun LogsContainer(
+    modifier: Modifier = Modifier,
+    padding: PaddingValues = PaddingValues(0.dp),
+    wrapText: Boolean = false
+) {
+    val logs by AppLogger.logs.collectAsState()
+
+    LazyColumn(
+        modifier
+            .padding(padding)
+            .padding(horizontal = 16.dp)
+            .clip(MaterialTheme.shapes.extraLarge)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
+            .fillMaxWidth()
+            .fillMaxHeight()
+            .padding(8.dp, 10.dp)
+            .let {
+                if (wrapText) it else it.horizontalScroll(rememberScrollState())
+            },
+        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+        reverseLayout = true
+    ) {
+        items(logs, key = { it.hashCode() }) { log ->
+            SelectionContainer {
+                LogEntry(log)
             }
         }
-//        }
     }
 }
 

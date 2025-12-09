@@ -1,16 +1,22 @@
-use std::error::Error;
-
-use common::crypto::{
-    StaticSecret, get_ephemeral_keypair, get_shared_key, get_static_keypair, sign::derive_ed25519,
-};
-use jni::{
-    JNIEnv,
-    objects::{AsJArrayRaw, JByteArray, JClass, JObject, JString, JValue, JValueGen},
-    sys::{jlong, jobject},
-};
+use common::crypto::StaticSecret;
+use common::crypto::get_ephemeral_keypair;
+use common::crypto::get_shared_key;
+use common::crypto::get_static_keypair;
+use common::crypto::sign::derive_ed25519;
+use jni::JNIEnv;
+use jni::objects::AsJArrayRaw;
+use jni::objects::JByteArray;
+use jni::objects::JClass;
+use jni::objects::JObject;
+use jni::objects::JString;
+use jni::objects::JValue;
+use jni::objects::JValueGen;
+use jni::sys::jlong;
+use jni::sys::jobject;
 use macros::jni;
 
-use crate::utils::{KeyConversion, get_pair_object};
+use crate::utils::KeyConversion;
+use crate::utils::get_pair_object;
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
 pub extern "system" fn getStaticKeypair(mut env: JNIEnv, _class: JClass) -> jobject {
@@ -31,34 +37,24 @@ pub extern "system" fn getStaticKeypair(mut env: JNIEnv, _class: JClass) -> jobj
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
 pub extern "system" fn getEphemeralKeypair<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass<'local>,
+    mut env: JNIEnv<'local>, _class: JClass<'local>,
 ) -> jobject {
     let res = std::panic::catch_unwind(move || {
         let (esk, epk) = get_ephemeral_keypair();
         log::debug!("Got Epehem KP? {:?}", epk);
         let esk_ptr = Box::new(esk);
-        let public_jarray = env
-            .byte_array_from_slice(epk.as_bytes())
-            .expect("Failed to allocate public buffer");
+        let public_jarray =
+            env.byte_array_from_slice(epk.as_bytes()).expect("Failed to allocate public buffer");
         log::debug!("Jarray {:?}", public_jarray);
 
         let jarray_obj: JObject<'local> = JObject::from(public_jarray);
 
         let long_class = env.find_class("java/lang/Long").unwrap();
         let long_obj = env
-            .new_object(
-                long_class,
-                "(J)V",
-                &[JValue::Long(Box::into_raw(esk_ptr) as jlong)],
-            )
+            .new_object(long_class, "(J)V", &[JValue::Long(Box::into_raw(esk_ptr) as jlong)])
             .unwrap();
 
-        get_pair_object(
-            &mut env,
-            JValue::Object(&long_obj),
-            JValue::Object(&jarray_obj),
-        )
+        get_pair_object(&mut env, JValue::Object(&long_obj), JValue::Object(&jarray_obj))
     });
 
     match res {
@@ -66,16 +62,13 @@ pub extern "system" fn getEphemeralKeypair<'local>(
         Err(err) => {
             log::error!("Panic on getEphemeralKeypair : {:#?}", err);
             JObject::null().as_raw()
-        }
+        },
     }
 }
 
 #[jni(base = "com.promtuz.core", class = "Crypto")]
 pub extern "system" fn deriveSharedKey<'local>(
-    mut env: JNIEnv<'local>,
-    _class: JClass,
-    raw_key: JByteArray<'local>,
-    salt: JByteArray<'local>,
+    mut env: JNIEnv<'local>, _class: JClass, raw_key: JByteArray<'local>, salt: JByteArray<'local>,
     info: JString<'local>,
 ) -> JByteArray<'local> {
     let salt = env.convert_byte_array(salt).unwrap();
@@ -108,7 +101,6 @@ pub extern "system" fn toSigningKey(mut env: JNIEnv, class: JClass) -> jobject {
 
 ///
 /// `external fun getVerificationKey(): ByteArray`
-///
 #[jni(base = "com.promtuz.chat.security", class = "SigningKey")]
 pub extern "system" fn getVerificationKey(mut env: JNIEnv, class: JClass) -> jobject {
     (|| {

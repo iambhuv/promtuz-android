@@ -4,6 +4,8 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.foundation.background
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.*
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
@@ -46,4 +48,5 @@ fun AppNavigation(
         transitionSpec = { Naviganimation.transitionSpec() },
         popTransitionSpec = { Naviganimation.popTransitionSpec() }
     )
+
 }

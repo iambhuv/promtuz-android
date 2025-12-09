@@ -1,41 +1,38 @@
 package com.promtuz.chat.data.remote.proto
 
 import com.promtuz.chat.data.remote.dto.Bytes
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class HandshakeProto {
+object HandshakePacket {
     @Serializable
+    @SerialName("ClientHello")
     data class ClientHello(
         val ipk: Bytes//, val epk: Bytes
-    ) : HandshakeProto()
+    ) : Packet
 
     @Serializable
+    @SerialName("ServerChallenge")
     data class ServerChallenge(
         val epk: Bytes, val ct: Bytes
-    ) : HandshakeProto()
+    ) : Packet
 
     @Serializable
+    @SerialName("ClientProof")
     data class ClientProof(
         val proof: Bytes,
-    ) : HandshakeProto()
+    ) : Packet
 
     @Serializable
+    @SerialName("ServerAccept")
     data class ServerAccept(
         val timestamp: ULong
-    ) : HandshakeProto()
+    ) : Packet
 
     @Serializable
+    @SerialName("ServerReject")
     data class ServerReject(
         val reason: String
-    ) : HandshakeProto()
+    ) : Packet
 }
-
-@Serializable
-data class HandshakeEnvelope(
-    val ClientHello: HandshakeProto.ClientHello? = null,
-    val ServerChallenge: HandshakeProto.ServerChallenge? = null,
-    val ClientProof: HandshakeProto.ClientProof? = null,
-    val ServerAccept: HandshakeProto.ServerAccept? = null,
-    val ServerReject: HandshakeProto.ServerReject? = null,
-)

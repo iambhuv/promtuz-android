@@ -2,7 +2,6 @@ package com.promtuz.chat.ui.activities
 
 import android.Manifest
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.SystemClock
@@ -35,7 +34,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import timber.log.Timber
-import java.util.concurrent.Executor
 
 private const val INVALID_TIME = -1L
 
@@ -46,6 +44,10 @@ class QrScanner : AppCompatActivity() {
     lateinit var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     lateinit var barcodeScanner: BarcodeScanner
     lateinit var camera: Camera
+
+    companion object {
+        private const val TAG = "QrScanner"
+    }
 
     var requestPermissionLauncher: ActivityResultLauncher<String> = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -59,6 +61,7 @@ class QrScanner : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
+
         setContent {
             PromtuzTheme {
                 QrScannerScreen(this, viewModel)
@@ -97,6 +100,19 @@ class QrScanner : AppCompatActivity() {
         cameraProviderFuture.addListener({
             viewModel.setCameraProvider(cameraProviderFuture.get())
         }, ContextCompat.getMainExecutor(this))
+
+        unfreezeCamera()
+    }
+
+    fun freezeCamera() {
+        Timber.tag(TAG).d("Freezing Camera")
+
+        viewModel.cameraProviderState.value?.unbind()
+        viewModel.imageAnalysis.clearAnalyzer()
+    }
+
+    fun unfreezeCamera() {
+        Timber.tag(TAG).d("Unfreezing Camera")
 
         viewModel.imageAnalysis.setAnalyzer(
             ContextCompat.getMainExecutor(this), qrAnalyzer()
@@ -138,7 +154,7 @@ class QrScanner : AppCompatActivity() {
     }
 
     fun handleReceiveCallback() {
-
+        
     }
 
     /**
@@ -148,8 +164,7 @@ class QrScanner : AppCompatActivity() {
      */
     fun checkAndInitialize() {
         if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.CAMERA
+                this, Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             this.initScanner()

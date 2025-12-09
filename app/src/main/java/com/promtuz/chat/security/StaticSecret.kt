@@ -7,9 +7,10 @@ package com.promtuz.chat.security
  * idk how much safer it is, it definitely feels safer
  */
 class StaticSecret(
+    @Suppress("Unused") // being used in jni
     private val key: ByteArray,
 ) {
-    @Suppress("unused") // is used in JNI
+    @Suppress("unused") // being used in jni
     private var used = false
 
     external fun toSigningKey(): SigningKey

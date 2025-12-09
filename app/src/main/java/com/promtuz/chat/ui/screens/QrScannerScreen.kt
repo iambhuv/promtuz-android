@@ -17,32 +17,64 @@ import androidx.camera.core.ViewPort
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.*
-import androidx.compose.ui.graphics.*
-import androidx.compose.ui.res.*
-import androidx.compose.ui.text.*
-import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.style.*
-import androidx.compose.ui.unit.*
-import androidx.compose.ui.viewinterop.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.BiasAlignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import androidx.core.view.doOnLayout
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.promtuz.chat.R
-import com.promtuz.chat.domain.model.UserIdentity
+import com.promtuz.chat.domain.model.Identity
 import com.promtuz.chat.presentation.state.PermissionState
 import com.promtuz.chat.presentation.viewmodel.QrScannerVM
 import com.promtuz.chat.ui.activities.QrScanner
 import com.promtuz.chat.ui.components.GoBackButton
+import com.promtuz.chat.ui.components.IdentityHexGrid
 import com.promtuz.chat.ui.text.avgSizeInStyle
 import com.promtuz.chat.ui.views.QrOverlayView
 
@@ -52,55 +84,16 @@ fun QrScannerScreen(
     activity: QrScanner,
     viewModel: QrScannerVM
 ) {
-    val textTheme = MaterialTheme.typography
-
-    var torchEnabled by remember { mutableStateOf(false) }
-    val haveCamera by viewModel.isCameraAvailable.collectAsState()
+    val selectedIdentity by viewModel.selectedIdentity.collectAsState()
 
     Box(
         Modifier.fillMaxSize()
     ) {
-        val cameraPermission by viewModel.cameraPermissionState.collectAsState()
         val cameraProvider by viewModel.cameraProviderState.collectAsState()
         val identities by viewModel.identities.collectAsState()
-        val identitiesBeingSaved by viewModel.identitiesBeingSaved.collectAsState()
+//        val identitiesBeingSaved by viewModel.identitiesBeingSaved.collectAsState()
 
-        when (cameraPermission) {
-            PermissionState.NotRequested -> {
-                activity.requestPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-
-            PermissionState.Denied -> {
-                Column(
-                    Modifier
-                        .padding(32.dp)
-                        .align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "Camera permission denied. Enable it in Settings to scan QR",
-                        style = MaterialTheme.typography.titleLargeEmphasized,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Button({
-                        activity.startActivity(
-                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                setData(Uri.fromParts("package", activity.packageName, null))
-                            }
-                        )
-                    }) {
-                        Text("Open Settings")
-                    }
-                }
-            }
-
-            PermissionState.Granted -> {
-                activity.checkAndInitialize()
-            }
-        }
+        PermissionRequester(activity, viewModel)
 
         cameraProvider?.let {
             CameraPreview(
@@ -109,59 +102,125 @@ fun QrScannerScreen(
             )
         }
 
+        LaunchedEffect(selectedIdentity) {
+            if (selectedIdentity != null) activity.freezeCamera() else activity.unfreezeCamera()
+        }
+
+        selectedIdentity?.let {
+            IdentityConfirmationDialog(it, viewModel) {
+                viewModel.dismissIdentity()
+            }
+        }
+
         LazyColumn(
             Modifier.align(BiasAlignment(0f, 0.65f)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            items(identities, { identity -> identity.key }) {
+            items(identities, { identity -> identity.ipk.toHexString() }) {
                 IdentityActionButton(
                     it,
                     viewModel,
-                    identitiesBeingSaved.contains(it),
                     Modifier.animateItem(
                         fadeInSpec = null
                     )
-                )
+                ) {
+
+                }
             }
         }
 
-        CenterAlignedTopAppBar(
-            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            modifier = Modifier.background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.Black.copy(alpha = 0.6f),
-                        Color.Transparent
-                    )
-                )
-            ),
-            navigationIcon = { GoBackButton() }, title = {
+        QrScannerTopBar(activity, viewModel)
+    }
+}
+
+
+@Composable
+private fun BoxScope.PermissionRequester(activity: QrScanner, viewModel: QrScannerVM) {
+    val cameraPermission by viewModel.cameraPermissionState.collectAsState()
+
+    when (cameraPermission) {
+        PermissionState.NotRequested -> {
+            activity.requestPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+
+        PermissionState.Denied -> {
+            Column(
+                Modifier
+                    .padding(32.dp)
+                    .align(Alignment.Center),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    "Scan QR", style = avgSizeInStyle(
-                        textTheme.titleLargeEmphasized, textTheme.titleMediumEmphasized
-                    )
+                    "Camera permission denied. Enable it in Settings to scan QR",
+                    style = MaterialTheme.typography.titleLargeEmphasized,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center
                 )
-            },
-            actions = {
-                if (haveCamera) {
-                    IconButton({
-                        torchEnabled = !torchEnabled
-                        activity.camera.cameraControl.enableTorch(torchEnabled)
-                    }) {
-                        Icon(
-                            painter = if (torchEnabled) painterResource(R.drawable.i_flash_off) else painterResource(
-                                R.drawable.i_flash_on
-                            ),
-                            if (torchEnabled) "Turn Flash Off" else "Turn Flash On",
-                            Modifier,
-                            MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+
+                Button({
+                    activity.startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                            setData(Uri.fromParts("package", activity.packageName, null))
+                        }
+                    )
+                }) {
+                    Text("Open Settings")
                 }
             }
+        }
 
-        )
+        PermissionState.Granted -> {
+            activity.checkAndInitialize()
+        }
     }
+}
+
+@Composable
+private fun QrScannerTopBar(
+    activity: QrScanner,
+    viewModel: QrScannerVM
+) {
+    val textTheme = MaterialTheme.typography
+    var torchEnabled by remember { mutableStateOf(false) }
+    val haveCamera by viewModel.isCameraAvailable.collectAsState()
+
+    CenterAlignedTopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        modifier = Modifier.background(
+            Brush.verticalGradient(
+                listOf(
+                    Color.Black.copy(alpha = 0.6f),
+                    Color.Transparent
+                )
+            )
+        ),
+        navigationIcon = { GoBackButton() }, title = {
+            Text(
+                "Scan QR", style = avgSizeInStyle(
+                    textTheme.titleLargeEmphasized, textTheme.titleMediumEmphasized
+                )
+            )
+        },
+        actions = {
+            if (haveCamera) {
+                IconButton({
+                    torchEnabled = !torchEnabled
+                    activity.camera.cameraControl.enableTorch(torchEnabled)
+                }) {
+                    Icon(
+                        painter = if (torchEnabled) painterResource(R.drawable.i_flash_off) else painterResource(
+                            R.drawable.i_flash_on
+                        ),
+                        if (torchEnabled) "Turn Flash Off" else "Turn Flash On",
+                        Modifier,
+                        MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+    )
 }
 
 @Composable
@@ -222,24 +281,30 @@ private fun CameraPreview(
 
 @Composable
 private fun IdentityActionButton(
-    userIdentity: UserIdentity,
-    vm: QrScannerVM,
-    saving: Boolean,
-    modifier: Modifier = Modifier
+    userIdentity: Identity,
+    viewModel: QrScannerVM,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
 ) {
-    val user = userIdentity.user
-    val identity = userIdentity.identity
-    val isNew = user.isNew
-    val name = identity.nickname.ifBlank { "Anonymous" }
+    val selectedIdentity by viewModel.selectedIdentity.collectAsState()
+
+    val isNew = true // user.isNew
+    val name = userIdentity.nickname.let { if (it.isNullOrBlank()) "Anonymous" else it }
+
+    val saving by remember { derivedStateOf { selectedIdentity == userIdentity } }
 
     Button({
-        vm.saveUserIdentity(userIdentity)
-    }, modifier, enabled = isNew) {
+        viewModel.saveUserIdentity(userIdentity)
+        onClick()
+    }, modifier, enabled = !saving) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (saving) LoadingIndicator(Modifier.size(24.dp))
+            if (saving) LoadingIndicator(
+                Modifier.size(24.dp),
+                color = LocalContentColor.current
+            )
             else Icon(
                 painter = if (isNew) painterResource(R.drawable.i_user_add) else painterResource(R.drawable.i_user_check),
                 if (isNew) "Add Contact" else "Contact Saved"
@@ -251,6 +316,69 @@ private fun IdentityActionButton(
                     append(name)
                 }
             })
+        }
+    }
+}
+
+@Composable
+private fun IdentityConfirmationDialog(
+    identity: Identity,
+    viewModel: QrScannerVM,
+    onDismissRequest: () -> Unit
+) {
+    val textTheme = MaterialTheme.typography
+
+    // viewModel.connect(identity);
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            elevation = CardDefaults.cardElevation(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    "Confirm Identity",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer)
+                        .padding(12.dp)
+                ) {
+                    IdentityHexGrid(identity.ipk)
+                }
+
+                Text(
+                    "${identity.nickname}",
+                    Modifier
+                        .padding(top = 8.dp)
+                        .align(Alignment.CenterHorizontally),
+                    style = MaterialTheme.typography.bodyLargeEmphasized.copy(fontWeight = FontWeight.SemiBold)
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("Close")
+                    }
+                }
+            }
         }
     }
 }

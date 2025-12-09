@@ -1,11 +1,10 @@
 package com.promtuz.chat
 
 import com.promtuz.chat.data.remote.dto.bytes
-import com.promtuz.chat.data.remote.proto.HandshakeProto
+import com.promtuz.chat.data.remote.proto.HandshakePacket
 import com.promtuz.chat.utils.serialization.toCbor
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
-import kotlin.test.assertEquals
 
 class HandshakeTest {
     private val emptyBytes = ByteArray(32).bytes()
@@ -19,7 +18,7 @@ class HandshakeTest {
 
     @Test
     fun testClientHelloEncode() {
-        val hello = HandshakeProto.ClientHello(emptyBytes, filledBytes)
+        val hello = HandshakePacket.ClientHello(emptyBytes, filledBytes)
 
         assertContentEquals(
             "a16b436c69656e7448656c6c6fa26369706b582000000000000000000000000000000000000000000000000000000000000000006365706b5820ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".hexToByteArray(),

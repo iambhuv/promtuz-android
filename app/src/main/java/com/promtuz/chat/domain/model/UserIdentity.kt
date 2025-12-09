@@ -2,6 +2,8 @@ package com.promtuz.chat.domain.model
 
 import com.promtuz.chat.data.local.entities.User
 
+//import com.promtuz.chat.presentation.viewmodel.Identity
+
 data class UserIdentity(
     val user: User,
     val identity: Identity

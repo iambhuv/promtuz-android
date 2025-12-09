@@ -11,14 +11,14 @@ import com.promtuz.chat.data.remote.dto.ClientResponseDto
 import com.promtuz.chat.data.remote.dto.RelayDescriptor
 import com.promtuz.chat.data.remote.dto.ResolvedRelays
 import com.promtuz.chat.data.remote.dto.bytes
-import com.promtuz.chat.data.remote.proto.HandshakeEnvelope
-import com.promtuz.chat.data.remote.proto.HandshakeProto
-import com.promtuz.chat.data.remote.realtime.cborDecode
+import com.promtuz.chat.data.remote.proto.HandshakePacket
+import com.promtuz.chat.data.remote.proto.pack
 import com.promtuz.chat.domain.model.ResolverSeeds
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.security.TrustManager
 import com.promtuz.chat.utils.common.Time
 import com.promtuz.chat.utils.network.PacketReader
+import com.promtuz.chat.utils.serialization.cborDecode
 import com.promtuz.chat.utils.serialization.toCbor
 import com.promtuz.core.Crypto
 import kotlinx.coroutines.Dispatchers
@@ -33,23 +33,6 @@ import com.promtuz.chat.presentation.state.ConnectionState as ConnState
 
 private const val PROTOCOL_VERSION = 1
 
-/**
- * Uses BigEndian btw
- */
-fun u32size(len: Int): ByteArray {
-    val size: UInt = len.toUInt()
-    val sizeBytes = ByteArray(4)
-    sizeBytes[0] = (size shr 24).toByte()
-    sizeBytes[1] = (size shr 16).toByte()
-    sizeBytes[2] = (size shr 8).toByte()
-    sizeBytes[3] = size.toByte()
-    return sizeBytes
-}
-
-fun framePacket(packet: ByteArray): ByteArray {
-    return u32size(packet.size) + packet
-}
-
 class QuicClient(
     private val application: Application,
     private val keyManager: KeyManager,
@@ -59,7 +42,10 @@ class QuicClient(
     private var _status = mutableStateOf<ConnState>(ConnState.Idle)
     val status: State<ConnState> get() = _status
 
-    private val log = Timber.tag("QuicClient")
+    companion object {
+        private const val TAG = "QuicClient"
+        private val log = { Timber.tag(TAG) }
+    }
 
     private fun setState(state: ConnState) {
         _status.value = state
@@ -67,7 +53,7 @@ class QuicClient(
 
     init {
         if (!hasInternetConnectivity(context)) {
-            log.d("Internet Connection Unavailable")
+            log().d("Internet Connection Unavailable")
         }
     }
 
@@ -111,7 +97,7 @@ class QuicClient(
                         return@withContext Result.success(res.content)
                     }
                 } catch (e: Exception) {
-                    log.e(e, "Failed for seed ${seed.id}, trying next…")
+                    log().e(e, "Failed for seed ${seed.id}, trying next…")
                 }
 
             }
@@ -126,10 +112,10 @@ class QuicClient(
     ) {
         val addr = relay.addr.toString()
 
-        log.d("RELAY(${relay.id}): CONNECTING AT $addr")
+        log().d("RELAY(${relay.id}): CONNECTING AT $addr")
 
         if (!hasInternetConnectivity(context)) {
-            log.d("RELAY(${relay.id}): CONNECTION FAILED - NO INTERNET")
+            log().d("RELAY(${relay.id}): CONNECTION FAILED - NO INTERNET")
             return@withContext Result.failure(Throwable("No Internet"))
         }
 
@@ -145,72 +131,62 @@ class QuicClient(
 
             conn.connect()
 
-            log.d("RELAY(${relay.id}): CONNECTED")
-
-            log.d("RELAY(${relay.id}): STARTING HANDSHAKE")
+            log().d("RELAY(${relay.id}): CONNECTED")
+            log().d("RELAY(${relay.id}): STARTING HANDSHAKE")
 
             setState(ConnState.Handshaking)
 
             // HANDSHAKE BEGIN
-
             val stream = conn.createStream(true)
 
-            log.d("RELAY(${relay.id}): CREATED HANDSHAKE STREAM")
+            log().d("RELAY(${relay.id}): CREATED HANDSHAKE STREAM")
 
             val reader = PacketReader(stream.inputStream)
 
             val ipk = keyManager.getPublicKey()
             val isk = keyManager.getSecretKey()
 
-//            val (esk, epk) = crypto.getEphemeralKeypair()
-
-            val clientHello = HandshakeProto.ClientHello(ipk.bytes()) //, epk.bytes())
-            stream.outputStream.write(framePacket(clientHello.toCbor()))
+            val clientHello = HandshakePacket.ClientHello(ipk.bytes()) //, epk.bytes())
+            log().d("CLIENT HELLO : ${clientHello.pack().toHexString()}")
+            stream.outputStream.write(clientHello.pack())
 
             val challengeBytes = reader.readPacket()
-            val challenge = cborDecode<HandshakeEnvelope>(challengeBytes)?.ServerChallenge ?: error(
-                "Unexpected Server Message"
-            )
-
+            val challenge = cborDecode<HandshakePacket.ServerChallenge>(challengeBytes)
+                ?: error("Unexpected Server Message")
             val dh = isk.diffieHellman(challenge.epk.bytes)
 
             val key = crypto.deriveSharedKey(dh, ByteArray(32), "handshake.challenge.key")
 
             val ad = ipk + challenge.epk.bytes
 
-
             val proof = crypto.decryptData(
                 cipher = challenge.ct.bytes, nonce = ByteArray(12), key = key, ad
             )
 
-            val clientProof = HandshakeProto.ClientProof(proof.bytes())
-            stream.outputStream.write(framePacket(clientProof.toCbor()))
+            val clientProof = HandshakePacket.ClientProof(proof.bytes())
+            stream.outputStream.write(clientProof.pack())
 
+            val bytes = reader.readPacket()
 
-            val responseBytes = reader.readPacket()
-            val envelope =
-                cborDecode<HandshakeEnvelope>(responseBytes) ?: error("Invalid or empty envelope")
+            // @formatter:off
+            val data =
+                cborDecode<HandshakePacket.ServerAccept>(bytes) ?:
+                cborDecode<HandshakePacket.ServerReject>(bytes)
+            // @formatter:on
 
-            stream.outputStream.close()
-
-            when {
-                envelope.ServerAccept != null -> {
-                    val ts = envelope.ServerAccept.timestamp
-
-                    log.d("RELAY(${relay.id}): HANDSHAKE SUCCESSFUL AT ${Time.getDateString(ts)}")
-
+            when (data) {
+                is HandshakePacket.ServerAccept -> {
+                    log().d("RELAY(${relay.id}): HANDSHAKE SUCCESSFUL AT ${Time.getDateString(data.timestamp)}")
                     setState(ConnState.Connected)
                 }
 
-                envelope.ServerReject != null -> {
-                    log.d("RELAY(${relay.id}): HANDSHAKE REJECTED - ${envelope.ServerReject.reason}")
-
+                is HandshakePacket.ServerReject -> {
+                    log().d("RELAY(${relay.id}): HANDSHAKE REJECTED - ${data.reason}")
                     setState(ConnState.Failed)
                 }
 
                 else -> {
-                    log.d("RELAY(${relay.id}): UNEXPECTED MESSAGE TYPE")
-
+                    log().d("RELAY(${relay.id}): UNEXPECTED MESSAGE TYPE")
                     error("Unexpected message type")
                 }
             }
@@ -221,7 +197,7 @@ class QuicClient(
         } catch (e: Exception) {
             setState(ConnState.Failed)
 
-            log.e(e, "RELAY(${relay.id}): CONNECTION FAILED")
+            log().e(e, "RELAY(${relay.id}): CONNECTION FAILED")
 
             return@withContext Result.failure(e)
         }

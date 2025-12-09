@@ -2,7 +2,7 @@ package com.promtuz.chat
 
 import com.promtuz.chat.data.remote.dto.ClientResponseDto
 import com.promtuz.chat.data.remote.dto.ResolvedRelays
-import com.promtuz.chat.data.remote.realtime.cborDecode
+import com.promtuz.chat.utils.serialization.cborDecode
 import com.promtuz.chat.utils.serialization.AppCbor
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToByteArray
