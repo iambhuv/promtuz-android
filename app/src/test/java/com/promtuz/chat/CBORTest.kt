@@ -2,8 +2,10 @@ package com.promtuz.chat
 
 import com.promtuz.chat.data.remote.dto.ClientResponseDto
 import com.promtuz.chat.data.remote.dto.ResolvedRelays
+import com.promtuz.chat.presentation.state.ConnectionState
 import com.promtuz.chat.utils.serialization.cborDecode
 import com.promtuz.chat.utils.serialization.AppCbor
+import com.promtuz.core.events.InternalEvent
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.encodeToByteArray
 import kotlin.test.Test
@@ -35,4 +37,6 @@ class CBORTest {
             emptyRelays
         )
     }
+
+
 }

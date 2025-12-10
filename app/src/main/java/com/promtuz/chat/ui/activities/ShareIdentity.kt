@@ -8,12 +8,19 @@ import com.promtuz.chat.presentation.viewmodel.ShareIdentityVM
 import com.promtuz.chat.security.KeyManager
 import com.promtuz.chat.ui.screens.ShareIdentityScreen
 import com.promtuz.chat.ui.theme.PromtuzTheme
+import com.promtuz.core.API
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class ShareIdentity : AppCompatActivity() {
     private val viewModel: ShareIdentityVM by viewModel()
+    private val api: API by inject()
     private lateinit var keyManager: KeyManager
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // api.identityDestroy()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,6 +29,8 @@ class ShareIdentity : AppCompatActivity() {
         keyManager.initialize()
 
         enableEdgeToEdge()
+
+        api.identityInit()
 
         setContent {
             PromtuzTheme {

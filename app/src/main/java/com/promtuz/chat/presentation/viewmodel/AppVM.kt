@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
-import com.promtuz.chat.R
 import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.data.remote.dto.RelayDescriptor
 import com.promtuz.chat.data.remote.proto.MiscPacket
@@ -15,7 +14,11 @@ import com.promtuz.chat.domain.model.Chat
 import com.promtuz.chat.navigation.AppNavigator
 import com.promtuz.chat.navigation.Routes
 import com.promtuz.core.API
+import com.promtuz.core.events.InternalEvent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tech.kwik.core.QuicClientConnection
@@ -34,6 +37,8 @@ class AppVM(
     var conn: QuicClientConnection? = null
         private set
 
+    val connStateFlow = api.eventsFlow.filterIsInstance<InternalEvent.Connection>().map { it.state }
+        .distinctUntilChanged()
 
     companion object {
         private const val TAG = "AppVM"

@@ -16,7 +16,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +27,7 @@ import com.promtuz.chat.R
 import com.promtuz.chat.data.remote.QuicClient
 import com.promtuz.chat.presentation.viewmodel.AppVM
 import com.promtuz.chat.ui.theme.gradientScrim
+import com.promtuz.core.API
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,7 +38,11 @@ import com.promtuz.chat.presentation.state.ConnectionState as CS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
+fun HomeTopBar(
+    appViewModel: AppVM,
+    api: API = koinInject(),
+    quicClient: QuicClient = koinInject(),
+) {
     val context = LocalContext.current
     val resources = LocalResources.current
     val staticTitle = stringResource(R.string.app_name)
@@ -46,12 +50,11 @@ fun HomeTopBar(appViewModel: AppVM, quicClient: QuicClient = koinInject()) {
     var job by remember { mutableStateOf<Job?>(null) }
     val menuExpanded = remember { mutableStateOf(false) }
 
-    LaunchedEffect(quicClient) {
-        snapshotFlow { quicClient.status.value }.collect { newStatus ->
+    LaunchedEffect(Unit) {
+        appViewModel.connStateFlow.collect { newStatus ->
             dynamicTitle.emit(
                 when (newStatus) {
                     CS.Idle -> staticTitle
-
                     CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving, CS.Offline -> resources.getString(
                         newStatus.text
                     )

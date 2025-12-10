@@ -16,9 +16,8 @@
 //! }
 //! ```
 
-use std::panic;
+use std::sync::Mutex;
 
-use anyhow::anyhow;
 use common::msg::cbor::FromCbor;
 use common::msg::cbor::ToCbor;
 use common::msg::client::ClientRequest;
@@ -43,20 +42,36 @@ use quinn::default_runtime;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::runtime::Runtime;
+use tokio::sync::mpsc;
 
 use crate::data::ResolverSeeds;
+use crate::events::InternalEvent;
+use crate::events::connection::ConnectionState;
 use crate::quic::dialer::connect_to_any_seed;
 use crate::utils::ujni::get_package_name;
-use crate::utils::ujni::get_raw_res_id;
 use crate::utils::ujni::read_raw_res;
 
 mod crypto;
 mod data;
+mod events;
+mod identity;
 mod quic;
 mod utils;
 
 type JE<'local> = JNIEnv<'local>;
 type JC<'local> = JClass<'local>;
+
+use tokio::sync::broadcast;
+
+/// Event Bus for
+/// Rust -> Kotlin
+static CHANNEL: Lazy<(
+    mpsc::UnboundedSender<InternalEvent>,
+    Mutex<mpsc::UnboundedReceiver<InternalEvent>>,
+)> = Lazy::new(|| {
+    let (tx, rx) = mpsc::unbounded_channel();
+    (tx, Mutex::new(rx))
+});
 
 /// Global Tokio Runtime
 pub static RUNTIME: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());
@@ -99,19 +114,10 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
     jni_try!(env, setup_crypto_provider());
 
     let root_ca_bytes = jni_try!(env, read_raw_res(&mut env, &context, "root_ca"));
-    info!("API: ROOT CA - {}", hex::encode(&root_ca_bytes));
     let roots = jni_try!(env, load_root_ca_bytes(&root_ca_bytes));
-    info!("API: GOT CERT ROOTS {:?}", roots);
-
-    info!("Root count: {}", roots.len());
-    for (i, cert) in roots.roots.iter().enumerate() {
-        info!("root[{}]: {:?}", i, cert.subject);
-    }
 
     let client_cfg = jni_try!(env, build_client_cfg(ProtoRole::Client, &roots));
     endpoint.set_default_client_config(client_cfg);
-
-    info!("API: UPDATED DEFAULT CLIENT CONFIG");
 
     ENDPOINT.set(endpoint).expect("init was ran twice");
 }
@@ -123,28 +129,24 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
 pub extern "system" fn resolve(mut env: JNIEnv, _: JC, context: JObject) {
     info!("API: RESOLVING");
 
-    let package_name: String = jni_try!(env, get_package_name(&mut env, &context));
-    info!("API: PACKAGE {}", package_name);
-
     let seeds = jni_try!(env, read_raw_res(&mut env, &context, "resolver_seeds"));
-
     let seeds = jni_try!(env, serde_json::from_slice::<ResolverSeeds>(&seeds)).seeds;
 
     RUNTIME.spawn(async move {
-        info!("SET STATE = RESOLVING");
+        info!("API: SENDING EVENT");
+        _ = CHANNEL.0.send(InternalEvent::Connection { state: ConnectionState::Resolving });
 
         let conn = match connect_to_any_seed(endpoint!(), &seeds).await {
             Ok(conn) => conn,
             Err(err) => {
-                info!("SET STATE = FAILED");
+                info!("API: SENDING EVENT");
+                _ = CHANNEL.0.send(InternalEvent::Connection { state: ConnectionState::Failed });
                 error!("API: RESOLVER FAILED - {}", err);
                 return;
             },
         };
 
         let req = ClientRequest::GetRelays().pack().unwrap();
-
-        info!("API: RESOLVER SENDING {}", hex::encode(&req));
 
         if let Ok((mut send, mut recv)) = conn.open_bi().await {
             _ = send.write_all(&req).await;
@@ -165,11 +167,11 @@ pub extern "system" fn resolve(mut env: JNIEnv, _: JC, context: JObject) {
                 info!("API: PACKET({})", hex::encode(&packet));
 
                 match CRes::from_cbor(&packet) {
-                    Ok(cres) => {
+                    Ok(cres) =>
+                    {
                         #[allow(irrefutable_let_patterns)]
                         if let GetRelays { relays } = cres {
-                            info!("GOT RELAYS : {:?}", relays);
-
+                            info!("RELAYS : {:?}", relays);
                             conn.close(VarInt::from_u32(1), &[]);
                         }
                     },

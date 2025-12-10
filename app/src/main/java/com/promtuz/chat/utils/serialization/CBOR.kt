@@ -27,6 +27,7 @@ object AppCbor {
         useDefiniteLengthEncoding = true
         alwaysUseByteString = true
         preferCborLabelsOverNames
+
     }
 }
 
