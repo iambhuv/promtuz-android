@@ -3,7 +3,7 @@ use serde::Serialize;
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 #[allow(unused)]
 pub enum ConnectionState {
-    Offline,
+    NoInternet,
     Idle,
     Resolving,
     Connecting,

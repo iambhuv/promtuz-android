@@ -55,7 +55,7 @@ fun HomeTopBar(
             dynamicTitle.emit(
                 when (newStatus) {
                     CS.Idle -> staticTitle
-                    CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving, CS.Offline -> resources.getString(
+                    CS.Connecting, CS.Failed, CS.Handshaking, CS.Reconnecting, CS.Resolving, CS.NoInternet -> resources.getString(
                         newStatus.text
                     )
 

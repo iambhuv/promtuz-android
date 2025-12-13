@@ -16,9 +16,6 @@ use crate::utils::KeyConversion;
 pub extern "system" fn ephemeralDiffieHellman<'local>(
     mut env: JNIEnv<'local>,
     _class: JClass,
-    // pointer to EphemeralSecret
-    // idk about lifetimes so i have no idea how long will this pointer live
-    // afaik box pointers live throughout entire process lifetime cuz they're stored in the heap
     ephemeral_secret_ptr: jlong,
     public_key_bytes: JByteArray,
 ) -> JByteArray<'local> {

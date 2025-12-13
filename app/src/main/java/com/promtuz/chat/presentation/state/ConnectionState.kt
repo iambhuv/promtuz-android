@@ -12,7 +12,7 @@ enum class ConnectionState(@param:StringRes val text: Int) {
     /**
      * Internet connection is not available.
      */
-    @SerialName("Offline") Offline(R.string.state_offline),
+    @SerialName("NoInternet") NoInternet(R.string.state_nointernet),
 
     /**
      * App hasn’t started any networking yet.

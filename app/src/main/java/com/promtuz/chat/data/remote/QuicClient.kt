@@ -19,7 +19,6 @@ import com.promtuz.chat.security.TrustManager
 import com.promtuz.chat.utils.common.Time
 import com.promtuz.chat.utils.network.PacketReader
 import com.promtuz.chat.utils.serialization.cborDecode
-import com.promtuz.chat.utils.serialization.toCbor
 import com.promtuz.core.Crypto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -213,7 +212,7 @@ class QuicClient(
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && capabilities.hasCapability(
             NetworkCapabilities.NET_CAPABILITY_VALIDATED
         ).also {
-            if (!it) setState(ConnState.Offline)
+            if (!it) setState(ConnState.NoInternet)
         }
     }
 }

@@ -52,6 +52,7 @@ use crate::db::NETWORK_DB;
 use crate::events::InternalEvent;
 use crate::events::connection::ConnectionState;
 use crate::quic::dialer::connect_to_any_seed;
+use crate::utils::has_internet;
 use crate::utils::sqlite::initial_execute;
 use crate::utils::ujni::get_package_name;
 use crate::utils::ujni::read_raw_res;
@@ -72,7 +73,7 @@ static PACKAGE_NAME: &str = "com.promtuz.chat";
 
 /// Event Bus for
 /// Rust -> Kotlin
-static CHANNEL: Lazy<(
+static EVENT_BUS: Lazy<(
     mpsc::UnboundedSender<InternalEvent>,
     Mutex<mpsc::UnboundedReceiver<InternalEvent>>,
 )> = Lazy::new(|| {
@@ -86,8 +87,9 @@ pub static RUNTIME: Lazy<Runtime> = Lazy::new(|| Runtime::new().unwrap());
 pub static ENDPOINT: OnceCell<Endpoint> = OnceCell::new();
 
 /// Connection to any relay server
-pub static CONNECTION: OnceCell<Connection> = OnceCell::new();
+pub static CONNECTION: OnceCell<Mutex<Connection>> = OnceCell::new();
 
+#[macro_export]
 macro_rules! endpoint {
     () => {
         if let Some(ep) = ENDPOINT.get() {
@@ -148,18 +150,24 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
 pub extern "system" fn resolve(mut env: JNIEnv, _: JC, context: JObject) {
     info!("API: RESOLVING");
 
+    // Checking Internet Connectivity
+    if !has_internet() {
+        _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::NoInternet });
+        return;
+    }
+
     let seeds = jni_try!(env, read_raw_res(&mut env, &context, "resolver_seeds"));
     let seeds = jni_try!(env, serde_json::from_slice::<ResolverSeeds>(&seeds)).seeds;
 
     RUNTIME.spawn(async move {
         info!("API: SENDING EVENT");
-        _ = CHANNEL.0.send(InternalEvent::Connection { state: ConnectionState::Resolving });
+        _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Resolving });
 
         let conn = match connect_to_any_seed(endpoint!(), &seeds).await {
             Ok(conn) => conn,
             Err(err) => {
                 info!("API: SENDING EVENT");
-                _ = CHANNEL.0.send(InternalEvent::Connection { state: ConnectionState::Failed });
+                _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Failed });
                 error!("API: RESOLVER FAILED - {}", err);
                 return;
             },
@@ -186,10 +194,20 @@ pub extern "system" fn resolve(mut env: JNIEnv, _: JC, context: JObject) {
                 info!("API: PACKET({})", hex::encode(&packet));
 
                 match CRes::from_cbor(&packet) {
-                    Ok(cres) => {
+                    Ok(cres) =>
+                    {
                         #[allow(irrefutable_let_patterns)]
                         if let GetRelays { relays } = cres {
                             _ = Relay::refresh(&relays);
+
+                            match Relay::fetch_best() {
+                                Ok(relay) => {
+                                    _ = relay.connect().await
+                                },
+                                Err(err) => {
+                                    error!("DB: FETCHING BEST RELAY FAILED {}", err);
+                                },
+                            }
 
                             conn.close(VarInt::from_u32(1), &[]);
                         }
@@ -198,12 +216,6 @@ pub extern "system" fn resolve(mut env: JNIEnv, _: JC, context: JObject) {
                         error!("API: CLIENT RES DECODE ERR : {}", err);
                     },
                 }
-
-                // if let Ok(GetRelays { relays }) = CRes::from_cbor(&packet) {
-                //     info!("GOT RELAYS : {:?}", relays);
-                // } else {
-
-                // }
             }
         }
     });

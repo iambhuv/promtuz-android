@@ -6,7 +6,7 @@ use jni::sys::jbyteArray;
 use log::info;
 use macros::jni;
 
-use crate::CHANNEL;
+use crate::EVENT_BUS;
 
 /// Event polling rate in ms
 ///
@@ -15,7 +15,7 @@ use crate::CHANNEL;
 
 #[jni(base = "com.promtuz.core", class = "API")]
 pub extern "system" fn pollEvent(env: JNIEnv, _class: JClass) -> jbyteArray {
-    let mut rx = CHANNEL.1.lock().unwrap();
+    let mut rx = EVENT_BUS.1.lock().unwrap();
 
     match rx.try_recv() {
         Ok(ev) => {

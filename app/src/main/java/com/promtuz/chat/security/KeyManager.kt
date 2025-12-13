@@ -14,7 +14,7 @@ import javax.crypto.SecretKey as JSecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlin.io.encoding.Base64
 
-class KeyManager(context: Context, private val crypto: Crypto) {
+class KeyManager(context: Context) {
     companion object {
         private const val WRAPPER_KEY_ALIAS = "encryptor"
         private const val PREFS_NAME = "keys"

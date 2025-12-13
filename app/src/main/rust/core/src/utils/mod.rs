@@ -1,3 +1,8 @@
+use std::net::TcpStream;
+use std::time::Duration;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
 use common::crypto::PublicKey;
 use common::crypto::StaticSecret;
 use common::crypto::encrypt::Encrypted;
@@ -8,8 +13,17 @@ use jni::objects::JValue;
 use jni::sys::jobject;
 
 pub mod error;
-pub mod ujni;
 pub mod sqlite;
+pub mod ujni;
+
+pub fn has_internet() -> bool {
+    TcpStream::connect_timeout(&"8.8.8.8:53".parse().unwrap(), Duration::from_secs(2)).is_ok()
+}
+
+pub fn systime() -> Duration {
+    let now = SystemTime::now();
+    now.duration_since(UNIX_EPOCH).unwrap_or(Duration::from_secs(0))
+}
 
 pub fn get_pair_object(env: &mut JNIEnv, first: JValue, second: JValue) -> jobject {
     let pair_class = env.find_class("kotlin/Pair").expect("kotlin.Pair is not found.");
