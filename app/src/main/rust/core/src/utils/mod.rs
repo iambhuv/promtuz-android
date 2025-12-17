@@ -13,7 +13,6 @@ use jni::objects::JValue;
 use jni::sys::jobject;
 
 pub mod error;
-pub mod sqlite;
 pub mod ujni;
 
 pub fn has_internet() -> bool {

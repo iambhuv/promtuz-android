@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS relays (
     -- When was relay last connected
     last_connect INTEGER,
 
-    last_version INTEGER NOT NULL
+    last_version INTEGER NOT NULL,
+
+    reputation INTEGER NOT NULL DEFAULT 0
 
     -- region TEXT
 )

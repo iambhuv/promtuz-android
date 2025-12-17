@@ -1,18 +1,26 @@
 use anyhow::Result;
+use anyhow::anyhow;
 use common::PROTOCOL_VERSION;
-use common::msg::cbor::{FromCbor, ToCbor};
-use common::msg::client::{ClientRequest, ClientResponse, RelayDescriptor};
+use common::msg::cbor::FromCbor;
+use common::msg::cbor::ToCbor;
+use common::msg::client::ClientRequest;
+use common::msg::client::ClientResponse;
+use common::msg::client::RelayDescriptor;
 use log::error;
+use log::info;
 use quinn::VarInt;
 use rusqlite::Row;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use rusqlite::params;
+use tokio::io::AsyncReadExt;
+use tokio::io::AsyncWriteExt;
 
+use crate::ENDPOINT;
+use crate::EVENT_BUS;
+use crate::data::ResolverSeed;
+use crate::db::NETWORK_DB;
 use crate::events::InternalEvent;
 use crate::events::connection::ConnectionState;
 use crate::quic::dialer::connect_to_any_seed;
-use crate::{EVENT_BUS, endpoint};
-use crate::data::ResolverSeed;
-use crate::db::NETWORK_DB;
 use crate::utils::systime;
 
 /// Local Database Representation of Relay
@@ -25,6 +33,8 @@ pub struct Relay {
     last_seen: u64,
     last_connect: Option<u64>,
     last_version: u16,
+
+    reputation: i16,
 }
 
 /// TODO: Create unit testing for this
@@ -40,8 +50,11 @@ impl Relay {
 
         conn.query_row(
             "SELECT * FROM relays 
-                  WHERE last_version = ?1 
+                  WHERE 
+                    last_version = ?1 AND
+                    reputation >= 0
                   ORDER BY 
+                      reputation DESC,
                       last_seen DESC, 
                       last_connect DESC, 
                       last_avg_latency ASC 
@@ -60,12 +73,14 @@ impl Relay {
             last_seen: row.get("last_seen")?,
             last_connect: row.get("last_connect")?,
             last_version: row.get("last_version")?,
+            reputation: row.get("reputation")?,
         })
     }
 
     pub fn refresh(relays: &[RelayDescriptor]) -> Result<u8> {
         let conn = NETWORK_DB.lock();
 
+        // Increase reputation as resolver says so
         let mut stmt = conn.prepare(
             "INSERT INTO relays (
                     id, host, port, last_seen, last_version
@@ -75,7 +90,8 @@ impl Relay {
                     host         = excluded.host,
                     port         = excluded.port,
                     last_seen    = excluded.last_seen,
-                    last_version = excluded.last_version",
+                    last_version = excluded.last_version,
+                    reputation   = reputation + 1",
         )?;
 
         relays.iter().for_each(|r| {
@@ -92,55 +108,74 @@ impl Relay {
     }
 
     /// Resolves relays by connected to one of the resolver seed provided
-    pub async fn resolve(seeds: &[ResolverSeed]) {
+    ///
+    /// Any type of failure except ui related is not tolerated and will return an error
+    pub async fn resolve(seeds: &[ResolverSeed]) -> anyhow::Result<()> {
         _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Resolving });
 
-        let conn = match connect_to_any_seed(endpoint!(), seeds).await {
-            Ok(conn) => conn,
-            Err(_) => {
-                _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Failed });
-                return;
-            },
-        };
+        let conn =
+            match connect_to_any_seed(ENDPOINT.get().ok_or(anyhow!("API not initialized"))?, seeds)
+                .await
+            {
+                Ok(conn) => conn,
+                Err(err) => {
+                    _ = EVENT_BUS
+                        .0
+                        .send(InternalEvent::Connection { state: ConnectionState::Failed });
+                    return Err(err);
+                },
+            };
 
         let req = ClientRequest::GetRelays().pack().unwrap();
 
-        if let Ok((mut send, mut recv)) = conn.open_bi().await {
-            _ = send.write_all(&req).await;
-            _ = send.flush().await;
+        let (mut send, mut recv) = conn.open_bi().await?;
 
-            use CRes::*;
-            use ClientResponse as CRes;
+        send.write_all(&req).await?;
+        send.flush().await?;
 
-            if let Ok(packet_size) = recv.read_u32().await {
-                let mut packet = vec![0u8; packet_size as usize];
+        use CRes::*;
+        use ClientResponse as CRes;
 
-                if recv.read_exact(&mut packet).await.is_err() {
-                    return;
+        let packet_size = recv.read_u32().await?;
+        let mut packet = vec![0u8; packet_size as usize];
+
+        recv.read_exact(&mut packet).await?;
+
+        match CRes::from_cbor(&packet) {
+            Ok(cres) => {
+                #[allow(irrefutable_let_patterns)]
+                if let GetRelays { relays } = cres {
+                    Relay::refresh(&relays)?;
+
+                    // we letting the connect function do this itself
+
+                    // match Relay::fetch_best() {
+                    //     Ok(relay) => _ = relay.connect().await,
+                    //     Err(err) => {
+                    //         error!("DB: FETCHING BEST RELAY FAILED {}", err);
+                    //     },
+                    // }
+
+                    conn.close(VarInt::from_u32(1), &[]);
                 }
-
-                match CRes::from_cbor(&packet) {
-                    Ok(cres) =>
-                    {
-                        #[allow(irrefutable_let_patterns)]
-                        if let GetRelays { relays } = cres {
-                            _ = Relay::refresh(&relays);
-
-                            match Relay::fetch_best() {
-                                Ok(relay) => _ = relay.connect().await,
-                                Err(err) => {
-                                    error!("DB: FETCHING BEST RELAY FAILED {}", err);
-                                },
-                            }
-
-                            conn.close(VarInt::from_u32(1), &[]);
-                        }
-                    },
-                    Err(err) => {
-                        error!("API: CLIENT RES DECODE ERR : {}", err);
-                    },
-                }
-            }
+            },
+            Err(err) => return Err(err),
         }
+
+        Ok(())
+    }
+
+    /// Reduces reputation of relay by 1
+    ///
+    /// Returns updated reputation
+    pub async fn downvote(&self) -> anyhow::Result<i16> {
+        info!("RELAY({}): Downvoting", self.id);
+        let conn = NETWORK_DB.lock();
+
+        Ok(conn.query_one(
+            "UPDATE relays SET reputation = reputation - 1 WHERE id = ?1 RETURNING reputation;",
+            params![self.id],
+            |r| r.get(0),
+        )?)
     }
 }

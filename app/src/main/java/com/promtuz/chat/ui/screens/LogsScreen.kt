@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -78,37 +79,53 @@ fun LogsContainer(
         modifier
             .padding(padding)
             .padding(horizontal = 16.dp)
-            .clip(MaterialTheme.shapes.extraLarge)
+            .clip(MaterialTheme.shapes.largeIncreased)
             .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .fillMaxWidth()
             .fillMaxHeight()
-            .padding(8.dp, 10.dp)
+            .padding(3.dp)
             .let {
-                if (wrapText) it else it.horizontalScroll(rememberScrollState())
+                if (wrapText) it.horizontalScroll(rememberScrollState()) else it
             },
-        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.Bottom),
+        verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.Bottom),
         reverseLayout = true
     ) {
-        items(logs, key = { it.hashCode() }) { log ->
-            SelectionContainer {
-                LogEntry(log)
+        itemsIndexed(logs, key = { _, it -> it.hashCode() }) { i, log ->
+            SelectionContainer(Modifier.fillMaxWidth()) {
+                LogEntry(log, i == 0)
             }
         }
     }
 }
 
 @Composable
-fun LogEntry(log: AppLog) {
-    val color = when (log.priority) {
-        6 -> MaterialTheme.colorScheme.error
-        5 -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.primary
+fun LogEntry(log: AppLog, isLast: Boolean = false) {
+    val color = when (prioLabel(log.priority)) {
+        "V" -> Color(0xFF9E9E9E)
+        "D" -> Color(0xFF42A5F5)
+        "I" -> Color(0xFF66BB6A)
+        "W" -> Color(0xFFFFA726)
+        "E" -> Color(0xFFEF5350)
+        "F" -> Color(0xFFAB47BC)
+        else -> Color.Unspecified
     }
+
+    val cz0 = CornerSize(0)
 
     Column(
         Modifier
+            .let { mfr ->
+                if (isLast) mfr.clip(
+                    // FIXME: innerRounding = outerRounding - padding
+                    MaterialTheme.shapes.largeIncreased.copy(
+                        topEnd = cz0,
+                        topStart = cz0
+                    )
+                ) else mfr
+            }
+            .background(color.copy(0.15f))
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(5.dp, 2.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Text(
@@ -154,6 +171,8 @@ fun prioLabel(p: Int) = when (p) {
     4 -> "I"
     5 -> "W"
     6 -> "E"
+    7 -> "F"
+    8 -> "S"
     else -> p.toString()
 }
 

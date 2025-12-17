@@ -3,7 +3,6 @@ use std::net::SocketAddr;
 use std::str::FromStr;
 use std::time::Duration;
 
-use anyhow::Result;
 use log::info;
 use quinn::ConnectionError;
 
@@ -13,13 +12,31 @@ use crate::data::relay::Relay;
 use crate::events::InternalEvent;
 use crate::events::connection::ConnectionState;
 
+pub enum RelayConnError {
+    Continue,
+    Error(anyhow::Error)
+}
+
+impl<E> From<E> for RelayConnError
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    fn from(err: E) -> Self {
+        RelayConnError::Error(err.into())
+    }
+}
+
+
 impl Relay {
-    pub async fn connect(&self) -> Result<()> {
+    pub async fn connect(&self) -> Result<(), RelayConnError> {
         let addr = SocketAddr::new(IpAddr::from_str(&self.host.clone())?, self.port);
 
         info!("RELAY({}): CONNECTING AT {}", self.id, addr);
 
         _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Connecting });
+
+        // TODO: verifying if the host exists before trying udp based handshake
+        // ping?
 
         match ENDPOINT.get().unwrap().connect(addr, &self.id)?.await {
             Ok(conn) => {
@@ -48,6 +65,11 @@ impl Relay {
               // tasks?
               // consider this relay "bad", basically downvote
               // return something like "Continue"
+              _ = EVENT_BUS.0.send(InternalEvent::Connection { state: ConnectionState::Failed });
+
+              _ = self.downvote().await;
+
+              return Err(RelayConnError::Continue)
             },
             Err(err) => return Err(err.into())
         };

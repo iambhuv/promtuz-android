@@ -1,4 +1,5 @@
 //! TODO: Minify SQL before executing
+//! TODO: Integrate rusqlite_migrations
 
 use log::info;
 use once_cell::sync::Lazy;
@@ -6,8 +7,6 @@ use parking_lot::Mutex;
 use rusqlite::Connection;
 
 use crate::PACKAGE_NAME;
-
-// static DB_PATH: &str = &format!("/data/data/{PACKAGE_NAME}/databases/");
 
 fn db(file_name: &'static str) -> String {
     format!("/data/data/{PACKAGE_NAME}/databases/{file_name}.db")
@@ -19,3 +18,14 @@ pub static NETWORK_DB: Lazy<Mutex<Connection>> = Lazy::new(|| {
     info!("DB: Network Database Connected");
     db
 });
+
+const RELAYS_SQL: &str = include_str!("../db/relays.sql");
+
+pub fn initial_execute() -> anyhow::Result<()> {
+    ////////////////////////
+    //  NETWORK DATABASE  //
+    ////////////////////////
+    NETWORK_DB.lock().execute(RELAYS_SQL, ())?;
+
+    Ok(())
+}

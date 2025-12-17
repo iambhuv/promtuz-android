@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.promtuz.chat.R
 import com.promtuz.chat.data.remote.QuicClient
+import com.promtuz.chat.navigation.Routes
 import com.promtuz.chat.presentation.viewmodel.AppVM
 import com.promtuz.chat.ui.theme.gradientScrim
 import com.promtuz.core.API
@@ -95,7 +96,17 @@ fun HomeTopBar(
             )
         },
         title = {
-            AppBarDynamicTitle(dynamicTitle)
+            AppBarDynamicTitle(
+                dynamicTitle,
+                Modifier.combinedClickable(
+                    enabled = true,
+                    interactionSource = null,
+                    indication = null,
+                    onClick = {},
+                    onLongClick = {
+                        appViewModel.navigator.push(Routes.Logs)
+                    })
+            )
         },
         actions = {
             Box {

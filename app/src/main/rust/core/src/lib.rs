@@ -19,6 +19,7 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::RwLock;
+use std::time::Duration;
 
 use common::msg::cbor::FromCbor;
 use common::msg::cbor::ToCbor;
@@ -51,11 +52,12 @@ use tokio::sync::mpsc;
 use crate::data::ResolverSeeds;
 use crate::data::relay::Relay;
 use crate::db::NETWORK_DB;
+use crate::db::initial_execute;
 use crate::events::InternalEvent;
 use crate::events::connection::ConnectionState;
 use crate::quic::dialer::connect_to_any_seed;
+use crate::quic::server::RelayConnError;
 use crate::utils::has_internet;
-use crate::utils::sqlite::initial_execute;
 use crate::utils::ujni::get_package_name;
 use crate::utils::ujni::read_raw_res;
 
@@ -129,7 +131,10 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
 
     let mut client_cfg = jni_try!(env, build_client_cfg(ProtoRole::Client, &roots));
 
-    client_cfg.transport_config(Arc::new(TransportConfig::default()));
+    let mut transport_cfg = TransportConfig::default();
+    transport_cfg.keep_alive_interval(Some(Duration::from_secs(15)));
+
+    client_cfg.transport_config(Arc::new(transport_cfg));
 
     endpoint.set_default_client_config(client_cfg);
 
@@ -163,16 +168,32 @@ pub extern "system" fn connect(mut env: JNIEnv, _: JC, context: JObject) {
     let seeds = jni_try!(env, serde_json::from_slice::<ResolverSeeds>(&seeds)).seeds;
 
     RUNTIME.spawn(async move {
-        match Relay::fetch_best() {
-            Ok(relay) => {
-                _ = relay.connect().await;
-            },
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                Relay::resolve(&seeds).await;
-            },
-            Err(err) => {
-                error!("DB: Relay fetch best failed - {err}")
-            },
+        loop {
+            info!("RELAY(BEST): Fetching");
+            match Relay::fetch_best() {
+                Ok(relay) => {
+                    info!("RELAY(BEST): Found [{}]", relay.id);
+                    if let Err(RelayConnError::Continue) = relay.connect().await {
+                        continue;
+                    }
+                },
+                Err(rusqlite::Error::QueryReturnedNoRows) => {
+                    info!("RELAY(BEST): Not Found, Resolving");
+                    match Relay::resolve(&seeds).await {
+                        Ok(_) => {
+                            continue;
+                        },
+                        Err(err) => {
+                            error!("RESOLVE: Failed {err}");
+                        },
+                    }
+                },
+                Err(err) => {
+                    error!("DB: Relay fetch best failed - {err}")
+                },
+            }
+
+            break;
         }
     });
 }
