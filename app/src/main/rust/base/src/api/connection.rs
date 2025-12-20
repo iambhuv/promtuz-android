@@ -10,8 +10,9 @@ use log::debug;
 use log::error;
 use log::info;
 use macros::jni;
+use parking_lot::RwLock;
+use quinn::Connection;
 
-use crate::CONNECTION;
 use crate::JC;
 use crate::RUNTIME;
 use crate::data::ResolverSeeds;
@@ -25,6 +26,9 @@ use crate::utils::KeyConversion;
 use crate::utils::has_internet;
 use crate::utils::ujni::read_raw_res;
 
+/// current connection to any relay server,
+/// could be none if not connection yet
+pub static CONNECTION: RwLock<Option<Connection>> = RwLock::new(None);
 pub static CONNECTION_STATE: AtomicI32 = AtomicI32::new(ConnectionState::Idle as i32);
 
 /// Connects to Relay

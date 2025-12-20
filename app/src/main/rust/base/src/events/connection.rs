@@ -2,10 +2,10 @@ use std::sync::atomic::Ordering;
 
 use serde::Serialize;
 
-use crate::EVENT_BUS;
 use crate::api::connection::CONNECTION_STATE;
 use crate::events::Emittable;
 use crate::events::InternalEvent;
+use crate::events::emit_event;
 
 #[derive(Serialize, Debug, Clone, PartialEq, Eq)]
 #[allow(unused)]
@@ -25,6 +25,6 @@ pub enum ConnectionState {
 impl Emittable for ConnectionState {
     fn emit(self) {
         CONNECTION_STATE.store(self.clone() as i32, Ordering::Relaxed);
-        _ = EVENT_BUS.0.send(InternalEvent::Connection { state: self });
+        emit_event(InternalEvent::Connection { state: self });
     }
 }

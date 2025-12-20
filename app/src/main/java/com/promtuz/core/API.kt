@@ -3,9 +3,12 @@ package com.promtuz.core
 import android.content.Context
 import com.promtuz.chat.presentation.state.ConnectionState
 import com.promtuz.chat.utils.serialization.AppCbor
+import com.promtuz.core.events.EventCallback
 import com.promtuz.core.events.InternalEvent
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
 import timber.log.Timber
@@ -14,6 +17,19 @@ object API {
     init {
         System.loadLibrary("core")
         Timber.tag("API").d("LOADED LIBCORE");
+
+        registerCallback(object : EventCallback {
+            override fun onEvent(bytes: ByteArray) {
+                if (bytes[0] == 0xA1.toByte()) bytes[0] = 0x82.toByte()
+
+                try {
+                    @OptIn(ExperimentalSerializationApi::class)
+                    _eventsFlow.tryEmit(AppCbor.instance.decodeFromByteArray<InternalEvent>(bytes))
+                } catch (e: Exception) {
+                    Timber.tag("API").e(e, "INTERNAL EVENT DESER FAIL");
+                }
+            }
+        })
     }
 
     // /** Initiates `android_logger` crate in `libcore` */
@@ -32,29 +48,16 @@ object API {
 
     //=||=||=||=||=||==|  EVENTS  |==||=||=||=||=||=//
 
-    external fun pollEvent(): ByteArray?
+    private val _eventsFlow = MutableSharedFlow<InternalEvent>(
+        replay = 0,
+        extraBufferCapacity = 64, // Buffer for burst events
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
 
+    val eventsFlow: SharedFlow<InternalEvent> = _eventsFlow.asSharedFlow()
 
-    val eventsFlow = callbackFlow {
-        while (true) {
-            val bytes = pollEvent()
-            if (bytes != null) {
-                // FIXME: It's temp fix
-                if (bytes[0] == 0xA1.toByte()) {
-                    bytes[0] = 0x82.toByte()
-                }
+    private external fun registerCallback(callback: EventCallback)
 
-                try {
-                    @OptIn(ExperimentalSerializationApi::class)
-                    trySend(AppCbor.instance.decodeFromByteArray<InternalEvent>(bytes))
-                } catch (e: Exception) {
-                    Timber.tag("API").e(e, "INTERNAL EVENT DESER FAIL");
-                }
-            } else {
-                delay(16) // event bus polling interval
-            }
-        }
-    }
 
     //=||=||=||=||=||==| IDENTITY |==||=||=||=||=||=//
 

@@ -22,3 +22,7 @@ sealed class InternalEvent {
     @SerialName("Identity")
     @Serializable data class Identity(val event: IdentityEvent) : InternalEvent()
 }
+
+interface EventCallback {
+    fun onEvent(bytes: ByteArray)
+}

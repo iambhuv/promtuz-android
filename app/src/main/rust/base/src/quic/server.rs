@@ -16,8 +16,8 @@ use quinn::ConnectionError;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 
-use crate::CONNECTION;
 use crate::ENDPOINT;
+use crate::api::connection::CONNECTION;
 use crate::data::relay::Relay;
 use crate::events::Emittable;
 use crate::events::connection::ConnectionState;
