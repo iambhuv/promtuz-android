@@ -10,6 +10,7 @@ use common::crypto::get_shared_key;
 use common::msg::cbor::FromCbor;
 use common::msg::cbor::ToCbor;
 use common::msg::relay::HandshakePacket;
+use common::msg::relay::MiscPacket;
 use log::debug;
 use log::error;
 use log::info;
@@ -141,6 +142,24 @@ impl Relay {
                 debug!("RELAY({}): Connection Fail because {:?}", self.id, err);
                 Err(err.into())
             },
+        }
+    }
+
+    /// fetches public address
+    pub async fn public_addr(&self) -> Option<IpAddr> {
+        let conn = self.connection.as_ref()?;
+        let (mut tx, mut rx) = conn.open_bi().await.ok()?;
+
+        tx.write_all(&MiscPacket::PubAddressReq.pack().ok()?).await.ok()?;
+        tx.flush().await.ok()?;
+
+        let len = rx.read_u32().await.ok()? as usize;
+        let mut packet = vec![0; len];
+        rx.read_exact(&mut packet).await.ok()?;
+
+        match MiscPacket::from_cbor(&packet).ok()? {
+            MiscPacket::PubAddressRes { addr } => Some(addr),
+            _ => None,
         }
     }
 

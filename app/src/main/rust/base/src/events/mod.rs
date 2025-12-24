@@ -1,6 +1,5 @@
 use common::msg::cbor::ToCbor;
 use jni::objects::GlobalRef;
-use jni::objects::JValue;
 use log::trace;
 use parking_lot::Mutex;
 use serde::Serialize;
@@ -35,7 +34,7 @@ pub fn emit_event(event: InternalEvent) {
     let mut env = vm.attach_current_thread().unwrap();
 
     if let Some(callback) = CALLBACK.lock().as_ref() {
-        let arr = env.byte_array_from_slice(&event_bytes).unwrap();
-        env.call_method(callback.as_obj(), "onEvent", "([B)V", &[JValue::Object(&arr)]).unwrap();
+        let arr = &env.byte_array_from_slice(&event_bytes).unwrap();
+        env.call_method(callback.as_obj(), "onEvent", "([B)V", &[arr.into()]).unwrap();
     }
 }

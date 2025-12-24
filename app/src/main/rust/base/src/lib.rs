@@ -1,3 +1,5 @@
+#![feature(ip_as_octets)]
+
 use std::sync::OnceLock;
 
 use jni::JNIEnv;

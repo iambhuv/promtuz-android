@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.runtime.Composable
@@ -52,17 +51,7 @@ fun IdentityQrCode(
                     .fillMaxSize(0.4f)
             )
         }
-//        HorizontalPager(
-//            rememberPagerState(pageCount = { 2 }),
-//            key = { it },
-//            modifier = Modifier
-//                .padding(32.dp)
-//                .aspectRatio(1f),
-//            overscrollEffect = null,
-//            pageSpacing = 18.dp,
-//        ) { page ->
-//            when (page) {
-//                0 ->
+        
         AndroidView(factory = { qrView }, update = { v ->
             v.loading = loading
             data?.let { v.content = it }

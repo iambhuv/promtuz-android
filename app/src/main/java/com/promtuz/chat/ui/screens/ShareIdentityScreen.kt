@@ -17,7 +17,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
@@ -40,7 +39,6 @@ import dev.shreyaspatil.capturable.controller.rememberCaptureController
 fun ShareIdentityScreen(
     viewModel: ShareIdentityVM
 ) {
-    val context = LocalContext.current
     val captureController = rememberCaptureController()
     val colors = MaterialTheme.colorScheme
 
@@ -62,8 +60,6 @@ fun ShareIdentityScreen(
                         .align(Alignment.CenterHorizontally)
                         .capturable(captureController)
                 ) {
-//                    publicIdentity?.let {
-//                    }
                     IdentityQrCode(viewModel.qrData.collectAsState())
                 }
                 Column(
@@ -71,9 +67,6 @@ fun ShareIdentityScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-//                    ShareQRButton {
-//                        viewModel.shareQrCode(captureController) { context.startActivity(it) }
-//                    }
                     ScanQRButton()
                 }
             }

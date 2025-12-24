@@ -10,6 +10,7 @@ use crate::{ENDPOINT, JC, RUNTIME, db::initial_execute, jni_try, utils::ujni::re
 
 pub mod conn_stats;
 pub mod connection;
+pub mod misc;
 
 #[macro_export]
 macro_rules! endpoint {
@@ -46,12 +47,12 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
         info!("API: ENDPOINT BIND TO {}", addr);
     }
 
-    jni_try!(env, setup_crypto_provider());
+    jni_try!(setup_crypto_provider());
 
-    let root_ca_bytes = jni_try!(env, read_raw_res(&mut env, &context, "root_ca"));
-    let roots = jni_try!(env, load_root_ca_bytes(&root_ca_bytes));
+    let root_ca_bytes = jni_try!(read_raw_res(&mut env, &context, "root_ca"));
+    let roots = jni_try!(load_root_ca_bytes(&root_ca_bytes));
 
-    let mut client_cfg = jni_try!(env, build_client_cfg(ProtoRole::Client, &roots));
+    let mut client_cfg = jni_try!(build_client_cfg(ProtoRole::Client, &roots));
 
     let mut transport_cfg = TransportConfig::default();
     transport_cfg.keep_alive_interval(Some(Duration::from_secs(15)));
@@ -72,5 +73,5 @@ pub extern "system" fn initApi(mut env: JNIEnv, _: JC, context: JObject) {
         Ok::<(), anyhow::Error>(())
     })();
 
-    jni_try!(env, db_block);
+    jni_try!(db_block);
 }

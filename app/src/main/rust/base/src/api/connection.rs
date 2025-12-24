@@ -46,11 +46,11 @@ pub extern "system" fn connect(
         return;
     }
 
-    let seeds = jni_try!(env, read_raw_res(&mut env, &context, "resolver_seeds"));
-    let seeds = jni_try!(env, serde_json::from_slice::<ResolverSeeds>(&seeds)).seeds;
+    let seeds = jni_try!(read_raw_res(&mut env, &context, "resolver_seeds"));
+    let seeds = jni_try!(serde_json::from_slice::<ResolverSeeds>(&seeds)).seeds;
 
-    let ipk = ipk.to_public(&mut env);
-    let isk = isk.to_secret(&mut env);
+    let ipk = ipk.to_public();
+    let isk = isk.to_secret();
 
     let keypair = KeyPair { public: ipk, secret: isk };
 

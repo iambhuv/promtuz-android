@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.promtuz.chat.utils.media.ImageUtils
+import com.promtuz.core.API
 import dev.shreyaspatil.capturable.controller.CaptureController
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 @OptIn(ExperimentalSerializationApi::class)
 class ShareIdentityVM(
     private val application: Application,
-    private val imgUtils: ImageUtils
+    private val imgUtils: ImageUtils,
+    private val api: API,
 ) : ViewModel() {
     private val context: Context get() = application.applicationContext
 
@@ -26,6 +28,10 @@ class ShareIdentityVM(
     val qrData = _qrData.asStateFlow()
 
     suspend fun init() = coroutineScope {
+        val addr = api.getPublicAddr().await()
+
+        println("PUBLIC ADDRESS : ${addr?.hostAddress}")
+
         // TODO: TO BE REIMPLEMENTED IN `libcore`
     }
 

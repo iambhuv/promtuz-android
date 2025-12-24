@@ -5,13 +5,16 @@ import com.promtuz.chat.presentation.state.ConnectionState
 import com.promtuz.chat.utils.serialization.AppCbor
 import com.promtuz.core.events.EventCallback
 import com.promtuz.core.events.InternalEvent
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.completeWith
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
 import timber.log.Timber
+import java.net.InetAddress
 
 object API {
     init {
@@ -34,6 +37,11 @@ object API {
 
     external fun initApi(context: Context)
 
+    //=||=||=||=||=||==|  MISC.  |==||=||=||=||=||=//
+
+    external fun getPublicAddr(): Deferred<InetAddress?>
+
+
     //=||=||=||=||=||==|  STATS  |==||=||=||=||=||=//
 
     // Returns current connection state
@@ -46,9 +54,7 @@ object API {
 
     //=||=||=||=||=||=| CONNECTION |=||=||=||=||=||=//
 
-    external
-
-    fun connect(context: Context, ipk: ByteArray, isk: ByteArray)
+    external fun connect(context: Context, ipk: ByteArray, isk: ByteArray)
 
     //=||=||=||=||=||==|  EVENTS  |==||=||=||=||=||=//
 
