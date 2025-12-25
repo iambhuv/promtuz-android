@@ -82,7 +82,7 @@ tasks.register<Exec>("buildRustCore") {
 
     println("Compiling libcore for ${if (isRelease) "Release" else "Debug"} build")
 
-    workingDir = file("src/main/rust")
+    workingDir = file("../../libcore")
 
     // @formatter:off
     if (isRelease) commandLine(
@@ -91,27 +91,17 @@ tasks.register<Exec>("buildRustCore") {
         "-t", "arm64-v8a",
         "-t", "x86",
         "-t", "x86_64",
-        "-o", "../jniLibs",
+        "-o", "../android/app/src/main/jniLibs",
         "--platform", (android.defaultConfig.minSdk ?: 21).toString(),
         "build", "--release"
     ) else commandLine(
         "cargo", "ndk",
         "-t", "arm64-v8a",
-        "-o", "../jniLibs",
+        "-o", "../android/app/src/main/jniLibs",
         "--platform", (android.defaultConfig.minSdk ?: 21).toString(),
         "build", "--release"
     )
     // @formatter:on
-
-    doLast {
-        fileTree("src/main/jniLibs") {
-            include("**/libbase.so")
-        }.forEach { file ->
-            val newFile = File(file.parentFile, "libcore.so")
-            file.renameTo(newFile)
-            println("Renamed ${file.absolutePath} to ${newFile.absolutePath}")
-        }
-    }
 }
 
 tasks.preBuild.dependsOn("buildRustCore")
