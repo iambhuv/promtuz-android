@@ -81,9 +81,8 @@ class QrScanner : AppCompatActivity() {
                         val control = camera.cameraControl
                         val info = camera.cameraInfo
                         val current = info.zoomState.value?.zoomRatio ?: 1f
-                        val target = suggestedZoom
                         val steps = 20
-                        val diff = (target - current) / steps
+                        val diff = (suggestedZoom - current) / steps
 
                         CoroutineScope(Dispatchers.Main).launch {
                             repeat(steps) {
@@ -154,7 +153,7 @@ class QrScanner : AppCompatActivity() {
     }
 
     fun handleReceiveCallback() {
-        
+
     }
 
     /**

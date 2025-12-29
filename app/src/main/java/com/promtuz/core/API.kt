@@ -2,6 +2,7 @@ package com.promtuz.core
 
 import android.content.Context
 import com.promtuz.chat.presentation.state.ConnectionState
+import com.promtuz.chat.ui.activities.ShareIdentity
 import com.promtuz.chat.utils.serialization.AppCbor
 import com.promtuz.core.events.EventCallback
 import com.promtuz.core.events.InternalEvent
@@ -71,8 +72,11 @@ object API {
 
     //=||=||=||=||=||==| IDENTITY |==||=||=||=||=||=//
 
-    external fun identityInit()
+    external fun identityInit(identity: ShareIdentity)
     external fun identityDestroy()
+
+    external fun parseQRBytes(bytes: ByteArray)
+    external fun computeQrMask(grid: ByteArray, size: Int): ByteArray
 
 
     //=||=||=||=||=||==| WELCOME! |==||=||=||=||=||=//

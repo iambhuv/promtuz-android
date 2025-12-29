@@ -27,6 +27,10 @@ class ShareIdentityVM(
     private var _qrData = MutableStateFlow<ByteArray?>(null)
     val qrData = _qrData.asStateFlow()
 
+    fun setQR(qr: ByteArray) {
+        _qrData.value = qr
+    }
+
     suspend fun init() = coroutineScope {
         val addr = api.getPublicAddr().await()
 

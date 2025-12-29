@@ -9,7 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.promtuz.chat.domain.model.Identity
 import com.promtuz.chat.presentation.state.PermissionState
-import com.promtuz.chat.utils.serialization.cborDecode
+import com.promtuz.core.API
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class QrScannerVM(
-    private val application: Application,
+    private val application: Application, private val api: API
 ) : ViewModel() {
     private val context: Context get() = application.applicationContext
     private val log = Timber.tag("QrScannerVM")
@@ -61,9 +61,8 @@ class QrScannerVM(
     fun handleScannedBarcodes(barcodes: List<Barcode>) = viewModelScope.launch {
         _identities.value = (barcodes.mapNotNull { barcode ->
             barcode.rawBytes?.let { bytes ->
-                cborDecode<Identity>(bytes).also {
-                    it?.let { log.d("DETECTED IDENTITY $it") }
-                }
+                API.parseQRBytes(bytes)
+                null
             } ?: return@mapNotNull null
         }).distinctBy { it }
     }

@@ -15,17 +15,21 @@ class ShareIdentity : AppCompatActivity() {
     private val viewModel: ShareIdentityVM by viewModel()
     private val api: API by inject()
 
+    fun onQRCreate(qr: ByteArray) {
+        viewModel.setQR(qr)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        // api.identityDestroy()
+        api.identityDestroy()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         enableEdgeToEdge()
 
-        api.identityInit()
+        api.identityInit(this)
 
         setContent {
             PromtuzTheme {
