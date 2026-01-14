@@ -9,9 +9,8 @@
     </style>
 
     <style name="Theme.Promtuz" parent="Theme.Material3.DynamicColors.DayNight.NoActionBar">
-        <!-- <item name="android:isLightTheme">false</item> -->
-        <!--        <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>-->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowLightStatusBar">true</item>
 
     </style>
 

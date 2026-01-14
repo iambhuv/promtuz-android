@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         applicationId = "com.promtuz.chat"
-        minSdk = 33
+        minSdk = 31
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -100,7 +100,7 @@ tasks.register<Exec>("buildRustCore") {
         "-t", "x86_64",
         "-o", "../android/app/src/main/jniLibs",
         "--platform", (android.defaultConfig.minSdk ?: 21).toString(),
-        "build", "--release"
+        "build" //, "--release"
     )
     // @formatter:on
 }

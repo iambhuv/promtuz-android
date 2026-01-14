@@ -18,16 +18,7 @@ class App : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(),
-                Color.Transparent.toArgb(),
-            ),
-            navigationBarStyle = SystemBarStyle.light(
-                Color.Transparent.toArgb(),
-                Color.Transparent.toArgb(),
-            ),
-        )
+        enableEdgeToEdge()
 
         setContent {
             PromtuzTheme {
